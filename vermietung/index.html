@@ -1,0 +1,1599 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="robots" content="noindex, nofollow">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1014" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0}</style>
+<title>Vermietung</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vermietung">
+<meta name="referrer" content="no-referrer">
+<style>
+/* Layout: iOS-artige Listen in einer schmalen Spalte, Tab-Leiste unten, Sperrbildschirm davor */
+:root{
+  --bg:#F2F3F5; --surface:#FFFFFF; --field:#F6F7F9; --fg:#141A21; --muted:#5C6672; --line:#E0E4E9;
+  --accent:#2B5C8A; --accent-fg:#FFFFFF; --accent-soft:#E3ECF5;
+  --pos:#1F7A3A; --neg:#B3261E; --warn:#8F5B00; --warn-soft:#FBF1DC; --neg-soft:#FBE7E5;
+  --c1:#2B5C8A; --c2:#C0892C; --c3:#5F78B0; --c4:#A0617B; --c5:#7E8C87;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-display:ui-rounded,-apple-system,BlinkMacSystemFont,"SF Pro Rounded","Segoe UI",Roboto,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1014; --surface:#161B21; --field:#1D232A; --fg:#E7EBF0; --muted:#949DA8; --line:#283039;
+  --accent:#7FB0E0; --accent-fg:#0A1C2E; --accent-soft:#182838;
+  --pos:#6CCB86; --neg:#FF8A80; --warn:#E5B24C; --warn-soft:#2E2512; --neg-soft:#331A18;
+  --c1:#7FB0E0; --c2:#D9A54A; --c3:#8EA3D8; --c4:#CB8EA7; --c5:#8C9A95; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1014; --surface:#161B21; --field:#1D232A; --fg:#E7EBF0; --muted:#949DA8; --line:#283039;
+  --accent:#7FB0E0; --accent-fg:#0A1C2E; --accent-soft:#182838;
+  --pos:#6CCB86; --neg:#FF8A80; --warn:#E5B24C; --warn-soft:#2E2512; --neg-soft:#331A18;
+  --c1:#7FB0E0; --c2:#D9A54A; --c3:#8EA3D8; --c4:#CB8EA7; --c5:#8C9A95; color-scheme:dark}
+
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font:15px/1.4 var(--font);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit}
+.num,.kpi,[data-k]{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.neg{color:var(--neg)}
+.pos{color:var(--pos)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- Sperrbildschirm ---------- */
+.lock{min-height:100%;display:grid;place-items:center;padding-block:32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.lock-inner{width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px;text-align:center}
+.mark{width:64px;height:64px;border-radius:18px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;margin:0 auto 4px}
+.lock h1{font:700 28px/1.15 var(--font-display);margin:0;letter-spacing:-.01em}
+.lock form{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.lock input,.lock textarea{font:inherit;font-size:17px;padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);width:100%}
+.lock textarea{font-size:13px;font-family:ui-monospace,Menlo,monospace;min-height:90px;resize:vertical}
+.err{color:var(--neg);min-height:1.2em;margin:0;font-size:14px}
+.fine{font-size:12.5px;color:var(--muted);margin:8px 0 0;text-wrap:pretty}
+.link{background:none;border:0;color:var(--accent);font-weight:600;padding:8px;cursor:pointer}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Buttons ---------- */
+.btn{border:0;border-radius:12px;padding:12px 16px;font-weight:600;cursor:pointer;background:var(--accent-soft);color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-fg)}
+.btn.danger{background:var(--neg-soft);color:var(--neg)}
+.btn.small{padding:8px 12px;font-size:14px;border-radius:10px}
+.btn[disabled]{opacity:.5}
+.add{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;border-top:1px solid var(--line);padding:12px 14px;color:var(--accent);font-weight:600;cursor:pointer;text-align:left}
+.del{flex:none;width:32px;height:32px;border-radius:50%;border:0;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center}
+.del:hover,.del:active{background:var(--neg-soft);color:var(--neg)}
+
+/* ---------- App-Gerüst ---------- */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);background:color-mix(in srgb,var(--bg) 86%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(14px);backdrop-filter:saturate(1.6) blur(14px)}
+.topbar-in{max-width:680px;margin:0 auto;display:flex;align-items:center;gap:8px;min-height:46px;padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}
+.topbar .spacer{flex:1}
+.iconbtn{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:var(--accent);font-weight:600;padding:8px 6px;cursor:pointer;font-size:16px}
+.status{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.status i{width:7px;height:7px;border-radius:50%;background:var(--pos);display:inline-block}
+.status.busy i{background:var(--warn)}
+main{max-width:680px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:2px calc(96px + env(safe-area-inset-bottom,0px))}
+h1.title{font:700 30px/1.15 var(--font-display);letter-spacing:-.015em;margin:4px 2px 14px;text-wrap:balance}
+.title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.title-row h1{margin-bottom:14px}
+.sec{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:24px 4px 8px;font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.sec span[data-k]{text-transform:none;letter-spacing:0;font-size:13px}
+.hint{font-size:13px;color:var(--muted);margin:8px 4px 0;text-wrap:pretty}
+
+.card{background:var(--surface);border-radius:var(--r);overflow:hidden}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-top:1px solid var(--line);min-height:46px}
+.card>.row:first-child,.card>:first-child .row:first-child{border-top:0}
+.row .l{min-width:0;flex:1}
+.row .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.row .r small,.row .l small{display:block;font-size:12.5px;color:var(--muted)}
+.row.total{font-weight:650}
+.row.sub{padding-left:28px;font-size:14px;color:var(--muted)}
+.row.go{cursor:pointer}
+.chev{color:var(--muted);flex:none}
+.row>span>.fld{width:100%}.row>span[style]{flex:none}
+
+/* Eingabefelder (16px, damit iOS nicht zoomt) */
+.fld{position:relative;display:block}
+.in{font:inherit;font-size:16px;width:100%;border:1px solid var(--line);background:var(--field);color:var(--fg);border-radius:10px;padding:8px 26px 8px 10px;text-align:right;font-variant-numeric:tabular-nums;-webkit-appearance:none;appearance:none}
+.in.text,.in.date{text-align:left;padding-right:10px}
+.in:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+.fld .u{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+.fld.nounit .in{padding-right:10px}
+.name{font:inherit;font-size:16px;font-weight:600;border:1px solid transparent;background:transparent;color:var(--fg);border-radius:8px;padding:5px 6px;margin-left:-7px;width:100%;min-width:0}
+.name:focus{outline:none;border-color:var(--accent);background:var(--field)}
+select.in{text-align:left;padding-right:28px;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px;background-repeat:no-repeat}
+label.cap{display:block;font-size:12px;color:var(--muted);margin:0 0 4px 2px}
+
+/* Positions-Zeilen */
+.item{padding:10px 14px 12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.card>.item:first-child{border-top:0}
+.item-h{display:flex;align-items:center;gap:6px}
+.item-g{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;align-items:end}
+.item-g.three{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) auto}
+.item-g .out{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;align-self:center}
+.item-g .out small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+@media (max-width:380px){.item-g.three{grid-template-columns:1fr 1fr}.item-g.three .out{grid-column:1/-1;display:flex;justify-content:space-between;gap:8px}}
+
+/* Kennzahlen */
+.hero{padding:16px 16px 14px;display:flex;flex-direction:column;gap:14px}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.lbl{font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+.kpi{font:700 26px/1.15 var(--font-display);letter-spacing:-.02em;margin-top:2px;overflow-wrap:anywhere}
+.kpi.sm{font-size:20px}
+.subl{font-size:13px;color:var(--muted);margin-top:2px}
+
+/* Verteilungsbalken */
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--line);gap:2px}
+.bar>span{display:block;height:100%;min-width:2px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.legend b{color:var(--fg);font-weight:600}
+.dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:0}
+.note{display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border-radius:12px;font-size:14px;margin-top:12px;text-wrap:pretty}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.bad{background:var(--neg-soft);color:var(--neg)}
+.note.info{background:var(--accent-soft);color:var(--accent)}
+.note button{margin-left:auto;flex:none}
+.chip{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:2px 8px;background:var(--accent-soft);color:var(--accent)}
+.chip.bad{background:var(--neg-soft);color:var(--neg)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+
+/* Donut */
+.donut-wrap{display:grid;grid-template-columns:132px 1fr;gap:16px;align-items:center}
+.donut-wrap .legend{flex-direction:column;flex-wrap:nowrap;gap:7px}
+.legend .lrow{display:flex;justify-content:space-between;gap:10px}
+
+/* Tabellen */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:10px 12px;text-align:right;white-space:nowrap;border-top:1px solid var(--line)}
+th{font-size:12px;color:var(--muted);font-weight:600;border-top:0}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface)}
+tr.em td{font-weight:650}
+
+/* Fonds-Details */
+details.item{gap:0}
+details.item>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}
+details.item>summary::-webkit-details-marker{display:none}
+details.item>summary .l{flex:1;min-width:0}
+details.item>summary .l b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.item>summary .l small{color:var(--muted);font-size:12.5px}
+details.item>summary .r{text-align:right;white-space:nowrap}
+details.item>summary .r small{display:block;font-size:12.5px}
+details.item[open]>summary .chev{transform:rotate(90deg)}
+details.item .body{display:flex;flex-direction:column;gap:10px;padding-top:12px}
+
+/* Segment */
+.seg{display:inline-flex;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:2px}
+.seg button{border:0;background:none;padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+
+/* Diagramm */
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{fill:var(--muted);font-size:10px;font-family:var(--font)}
+
+/* Tab-Leiste */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:8;background:var(--surface);background:color-mix(in srgb,var(--surface) 90%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(16px);backdrop-filter:saturate(1.6) blur(16px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+.tabbar-in{max-width:680px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.tab{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px 6px;font-size:10.5px;font-weight:600;color:var(--muted);cursor:pointer}
+.tab svg{width:25px;height:25px}
+.tab[aria-current="page"]{color:var(--accent)}
+
+textarea.code{font:12.5px/1.4 ui-monospace,Menlo,monospace;width:100%;min-height:110px;border:1px solid var(--line);border-radius:10px;background:var(--field);color:var(--fg);padding:10px;resize:vertical}
+.stack{display:flex;flex-direction:column;gap:10px;padding:14px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+@media (prefers-reduced-motion:no-preference){.bar>span{transition:width .25s ease}}
+
+/* Ergänzungen Vermietung */
+.tabbar-in{grid-template-columns:repeat(5,1fr)}
+.row .fld{width:170px;flex:none}
+.row .fld.wide{width:210px}
+@media (max-width:380px){.row .fld{width:140px}}
+.row a{color:var(--accent);text-decoration:none;font-weight:600}
+.unitline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.when{font-size:12.5px;color:var(--muted)}
+.sumhead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;font-weight:650;background:var(--field);border-bottom:1px solid var(--line)}
+textarea.in{text-align:left;min-height:80px;resize:vertical;padding:10px;font-size:16px}
+.fld.wu .in{padding-right:46px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 10px}
+.grid2 .full{grid-column:1/-1}
+.objbar{display:flex;flex-direction:column;gap:10px}
+.objbar .brow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;font-size:14px}
+.objbar .track{grid-column:1/-1;height:10px;border-radius:5px;background:var(--line);overflow:hidden;display:flex}
+.objbar .track span{display:block;height:100%}
+.kpi.xl{font-size:34px;margin-top:4px}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tile{background:var(--field);border-radius:12px;padding:10px 10px 9px;min-width:0}
+.tile .lbl{font-size:12px}
+.tile .tv{font:700 18px/1.2 var(--font-display);margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .subl{font-size:12px}
+.status{font-size:13px}
+.note b{font-weight:650}
+.law .body p{margin:0 0 8px;font-size:14.5px;line-height:1.5;text-wrap:pretty}
+.law .body ul,.law .body ol{margin:0 0 8px;padding-left:20px;font-size:14.5px;line-height:1.5}
+.law .body li{margin:3px 0}
+.law details.item>summary{padding:4px 0}
+.law .body{padding-top:8px!important}
+#dataBtn.on{color:var(--fg)}
+.seg button{font-size:14px}
+.lkbody,.lkcol{display:flex;flex-direction:column;gap:10px;margin-top:4px;text-align:left}
+.lock input[type=text]{font:inherit;font-size:17px;padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);width:100%}
+#ulCode{font-family:ui-monospace,Menlo,monospace;letter-spacing:.04em;text-transform:uppercase}
+.rcode{font:600 19px/1.5 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-align:center;background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:16px 10px;user-select:all;-webkit-user-select:all;word-break:break-all;color:var(--fg)}
+.lock #lockMsg b{color:var(--fg)}
+.empty{padding:16px 14px;color:var(--muted);font-size:14px}
+</style>
+
+</head>
+<body>
+<div id="lock" class="lock">
+  <div class="lock-inner">
+    <div class="mark" aria-hidden="true">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5.5h4V20"/></svg>
+    </div>
+    <h1>Vermietung</h1>
+    <p id="lockMsg" class="muted" style="margin:0">Wird geladen …</p>
+    <div id="lkBody" class="lkbody"></div>
+    <p class="err" id="lkErr" role="alert"></p>
+    <p class="fine">Deine Daten sind mit AES‑256 verschlüsselt und bleiben auf diesem Gerät. Die App baut keine Verbindung ins Internet auf.</p>
+    <p class="fine" id="verInfo" style="margin-top:0"></p>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <div class="topbar"><div class="topbar-in">
+    <button id="backBtn" class="iconbtn" type="button" hidden><svg width="12" height="20" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2 2 10l8 8"/></svg><span id="backLbl">Zurück</span></button>
+    <span id="saveStatus" class="status"><i></i>Gespeichert</span>
+    <span class="spacer"></span>
+    <button id="dataBtn" class="iconbtn" type="button" data-tab="daten" aria-label="Sicherheit &amp; Daten"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.8"/><path d="M5 6v6c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6"/><path d="M5 12v6c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-6"/></svg>Daten</button>
+  </div></div>
+  <main id="view"></main>
+  <nav class="tabbar" aria-label="Bereiche"><div class="tabbar-in" id="tabs"></div></nav>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= Hilfsfunktionen ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), b => b.toString(16).padStart(2,'0')).join('');
+const num = v => { const n = typeof v === 'number' ? v : parseNum(v); return isFinite(n) ? n : 0; };
+const has = v => !(v === '' || v == null);
+function parseNum(s){
+  s = String(s ?? '').trim().replace(/[\s€% ]/g,'');
+  if (!s) return 0;
+  if (s.includes(',')) s = s.replace(/\./g,'').replace(',','.');
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g,'');
+  const n = parseFloat(s); return isFinite(n) ? n : 0;
+}
+const fmtIn = n => { const r = Math.round(n*1e6)/1e6; return String(r).replace('.',','); };
+const nfE  = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'});
+const nfE0 = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+const nfP  = new Intl.NumberFormat('de-DE',{style:'percent',minimumFractionDigits:0,maximumFractionDigits:1});
+const nfN1 = new Intl.NumberFormat('de-DE',{maximumFractionDigits:1});
+const nfN2 = new Intl.NumberFormat('de-DE',{maximumFractionDigits:2});
+function fmt(v,f){
+  if (typeof v==='number' && !isFinite(v)) return '–';
+  if (Math.abs(v) < 1e-9) v = 0;
+  switch(f){
+    case 'eur': return nfE.format(Math.abs(v)<0.005?0:v);
+    case 'eur0': return nfE0.format(v);
+    case 'pct': return nfP.format(v);
+    case 'qm': return nfN1.format(v) + ' m²';
+    case 'eqm': return nfE.format(v) + '/m²';
+    case 'date': return v ? fmtDate(v) : '–';
+    case 'txt': return String(v);
+    default: return nfN2.format(v);
+  }
+}
+const getP = (o,p) => p.split('.').reduce((a,k)=>a==null?a:a[k], o);
+function setP(o,p,v){ const ks=p.split('.'); const last=ks.pop(); const t=ks.reduce((a,k)=>a[k],o); t[last]=v; }
+
+/* Datum */
+const todayISO = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const isISO = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s||''));
+function fmtDate(s){ if(!isISO(s)) return String(s||''); const [y,m,d]=s.split('-'); return `${d}.${m}.${y}`; }
+function edate(s,months){ // wie Excel EDATE
+  const [y,m,d]=s.split('-').map(Number); const t=(m-1)+months; const ny=y+Math.floor(t/12), nm=((t%12)+12)%12;
+  const last=new Date(Date.UTC(ny,nm+1,0)).getUTCDate();
+  return `${ny}-${String(nm+1).padStart(2,'0')}-${String(Math.min(d,last)).padStart(2,'0')}`;
+}
+function daysBetween(a,b){ const p=s=>{const [y,m,d]=s.split('-').map(Number); return Date.UTC(y,m-1,d);}; return Math.round((p(b)-p(a))/864e5); }
+function untilText(days){
+  if (days<=0) return 'jetzt';
+  if (days<45) return `in ${days} Tagen`;
+  const mo=Math.round(days/30.44); if (mo<24) return `in ${mo} Monaten`;
+  return `in ${nfN1.format(days/365.25)} Jahren`;
+}
+
+/* ================= Krypto (WebCrypto, AES-GCM 256, PBKDF2-SHA256) ================= */
+const STORE_KEY = 'vm.vault.v1';
+const PREFIX = 'VMB1.';
+const ITER = 600000;
+const te = new TextEncoder(), td = new TextDecoder();
+function b64(buf){ const u=new Uint8Array(buf); let s=''; for (let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(s); }
+const ub64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+async function deriveKey(pw,salt,iter){
+  const base = await crypto.subtle.importKey('raw', te.encode(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'}, base, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+}
+async function seal(key,salt,iter,obj){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM',iv}, key, te.encode(JSON.stringify(obj)));
+  return {v:1,app:'vermietung',kdf:'PBKDF2-SHA256',iter,salt:b64(salt),iv:b64(iv),ct:b64(ct)};
+}
+async function unseal(key,vault){
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(vault.iv)}, key, ub64(vault.ct));
+  return JSON.parse(td.decode(pt));
+}
+const SCR = false;
+window.__vmQ = [];
+const toScr = m => { window.__vmQ = window.__vmQ.filter(x=>!(m.t==='data'&&x.t==='data')); window.__vmQ.push(m); };
+// Daten werden mit einem zufälligen Geräteschlüssel verschlüsselt (Scriptable: iOS-Schlüsselbund). Kein Passwort nötig.
+const DATA_KEY='vm.data.v2', DKEY_LS='vm.devkey';
+async function deviceKey(){
+  let raw = SCR ? window.__VM.key : (()=>{ try{ return localStorage.getItem(DKEY_LS); }catch(e){ return null; } })();
+  if (!raw){
+    raw = b64(crypto.getRandomValues(new Uint8Array(32)));
+    if (SCR){ window.__VM.key=raw; toScr({t:'key',k:raw}); } else { localStorage.setItem(DKEY_LS, raw); }
+  }
+  return crypto.subtle.importKey('raw', ub64(raw), {name:'AES-GCM'}, false, ['encrypt','decrypt']);
+}
+async function sealDev(obj){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv}, KEY, te.encode(JSON.stringify(obj)));
+  return {v:2,app:'vermietung',enc:'device-AES-GCM-256',iv:b64(iv),ct:b64(ct)};
+}
+function readData(){ if (SCR) return window.__VM.data||null; try { const s=localStorage.getItem(DATA_KEY); return s?JSON.parse(s):null; } catch(e){ return null; } }
+function writeData(v){ if (SCR){ window.__VM.data=v; toScr({t:'data',d:JSON.stringify(v)}); return; } localStorage.setItem(DATA_KEY, JSON.stringify(v)); }
+// alte, mit Passwort verschlüsselte Datei(en) aus früheren Versionen
+function legacyVaults(){
+  const out=[]; const add=v=>{ try{ if (typeof v==='string') v=JSON.parse(v); if (v&&v.ct&&v.salt&&v.iv) out.push(v); }catch(e){} };
+  if (SCR){ (window.__VM.legacy||[]).forEach(add); if (window.__VM.vault) add(window.__VM.vault); }
+  else { try{ add(localStorage.getItem(STORE_KEY)); }catch(e){} }
+  return out;
+}
+
+let KEY=null, SALT=null, S=null;
+let saveTimer=null, saving=Promise.resolve();
+
+/* ================= Datenmodell ================= */
+const UNIT_BLANK = {we:'',lage:'',flaeche:0,zimmer:'',keller:'',stellplatz:'',schluessel:'',
+  mieter:'',telefon:'',email:'',bewohner:'',beginn:'',ende:'',
+  kalt:0,nk:0,kaution:'',letzteErh:'',zStrom:'',zWasser:'',zHeizung:'',notiz:''};
+const unit = o => Object.assign({id:uid()}, UNIT_BLANK, o, {historie:(o&&o.historie)||[], verlauf:(o&&o.verlauf)||[]});
+function defaults(){
+  const y=new Date().getFullYear();
+  return {
+    v:1, beispiel:true, settings:{lockMin:5},
+    erh:{intervall:36, limit:0.2},
+    steuerJahr:y,
+    objekte:[
+      {id:uid(),name:'Musterstraße 1',ort:'Musterstadt',typ:'Mehrfamilienhaus',einheiten:[
+        unit({we:1,lage:'EG links',flaeche:70,mieter:'Mieter A',bewohner:2,beginn:'2021-03-01',kalt:600,nk:150,letzteErh:'2023-03-01',
+          historie:[{id:uid(),datum:`${y}-04-15`,massnahme:'Therme gewartet',gewerk:'Heizung',firma:'Heizung Muster',kosten:180,rechnung:'R-1024',garantie:''}]}),
+        unit({we:2,lage:'OG rechts',flaeche:85,mieter:'Mieter B',bewohner:3,beginn:'2024-07-01',kalt:720,nk:190,letzteErh:'2024-07-01'}),
+      ]},
+      {id:uid(),name:'Beispielweg 5',ort:'Beispielort',typ:'Doppelhaushälfte',einheiten:[
+        unit({we:1,lage:'DHH',flaeche:120,mieter:'Mieter C',bewohner:4,beginn:'2019-01-01',kalt:900,nk:160,letzteErh:'2025-01-01'}),
+      ]},
+    ],
+  };
+}
+function normalize(d){
+  const D=defaults(), o=(d&&typeof d==='object')?d:{};
+  const out={v:1, beispiel:!!o.beispiel,
+    settings:Object.assign({lockMin:5,exportErh:true}, o.settings||{}),
+    erh:Object.assign({}, D.erh, o.erh||{}),
+    steuerJahr:o.steuerJahr||D.steuerJahr,
+    objekte:Array.isArray(o.objekte)?o.objekte:D.objekte};
+  out.objekte = out.objekte.map(ob=>({id:ob.id||uid(), name:ob.name||'Objekt', ort:ob.ort||'', typ:ob.typ||'', historie:(ob.historie||[]).map(h=>Object.assign({id:uid(),datum:'',massnahme:'',gewerk:'',firma:'',kosten:0,rechnung:'',garantie:''},h)),
+    einheiten:(ob.einheiten||[]).map(u=>{ const x=unit(u); x.id=u.id||x.id;
+      x.historie=(x.historie||[]).map(h=>Object.assign({id:uid(),datum:'',massnahme:'',gewerk:'',firma:'',kosten:0,rechnung:'',garantie:''},h));
+      x.verlauf=(x.verlauf||[]).map(h=>Object.assign({id:uid(),datum:'',alt:0,neu:0},h));
+      return x; })}));
+  return out;
+}
+
+/* ================= Jahreswerte (Mietbeginn/-ende + Mietverlauf) ================= */
+function yearRent(u,Y){
+  let k=0,n=0,mo=0; const vs=[...u.verlauf].filter(v=>isISO(v.datum)).sort((a,b)=>b.datum.localeCompare(a.datum));
+  for (let m=1;m<=12;m++){
+    const ym=`${Y}-${String(m).padStart(2,'0')}`;
+    if (isISO(u.beginn) && u.beginn.slice(0,7)>ym) continue;
+    if (isISO(u.ende) && u.ende.slice(0,7)<ym) continue;
+    let K=num(u.kalt); for (const v of vs){ if (v.datum.slice(0,7)>ym) K=num(v.alt); else break; }
+    k+=K; n+=num(u.nk); mo++;
+  }
+  return {k,n,mo};
+}
+function instOf(u,Y){ return u.historie.filter(h=>String(h.datum).slice(0,4)===String(Y)); }
+
+/* ================= Berechnungen (entsprechen den Excel-Formeln) ================= */
+let F={}, R={};
+function compute(){
+  F={}; R={units:[],obj:[]};
+  const put=(k,v,f='eur')=>{ F[k]={t:fmt(v,f),neg:typeof v==='number'&&v<-1e-9,n:v}; return v; };
+  const today=todayISO(), iv=num(S.erh.intervall), lim=num(S.erh.limit), yr=String(S.steuerJahr);
+  let TK=0,TN=0,TF=0,TU=0,TKau=0,TInst=0,moegl=0,plus=0,TKY=0,TNY=0;
+  S.objekte.forEach((ob,oi)=>{
+    let k=0,n=0,f=0,inst=0,ky=0,ny=0;
+    ob.einheiten.forEach((u,ui)=>{
+      const K=num(u.kalt), N=num(u.nk), G=K+N, A=num(u.flaeche);
+      k+=K; n+=N; f+=A; TKau+=num(u.kaution);
+      const p=`o${oi}u${ui}`;
+      put(p+'k',K); put(p+'n',N); put(p+'g',G); put(p+'kj',K*12); put(p+'gj',G*12);
+      put(p+'kqm',A?K/A:NaN,'eqm'); put(p+'wqm',A?G/A:NaN,'eqm'); put(p+'a',A,'qm');
+      let next='', st='offen', days=0;
+      if (isISO(u.letzteErh)){ next=edate(u.letzteErh,iv); days=daysBetween(today,next); st = days<=0 ? 'moeglich' : 'sperr'; }
+      const betrag=K*lim;
+      put(p+'next',next,'date'); put(p+'eb',betrag); put(p+'em',K+betrag);
+      { const lr=isISO(u.letzteErh)?edate(u.letzteErh,12):'', le=isISO(u.letzteErh)?edate(u.letzteErh,15):'';
+        const bd=edate(today,-36); const vs=[...u.verlauf].filter(v=>isISO(v.datum)).sort((a,b)=>b.datum.localeCompare(a.datum));
+        let base=K; for (const v of vs){ if (v.datum>bd) base=num(v.alt); else break; }
+        const maxK=base*1.2;
+        put(p+'lr',lr,'date'); put(p+'le',le,'date'); put(p+'kb',base); put(p+'kbd',bd,'date'); put(p+'kmax',maxK); put(p+'krest',Math.max(0,maxK-K)); }
+      if (st==='moeglich'){ moegl++; plus+=betrag; }
+      let ui_inst=0; u.historie.forEach((h,hi)=>{ put(`${p}h${hi}`,num(h.kosten)); if (String(h.datum).slice(0,4)===yr) ui_inst+=num(h.kosten); });
+      inst+=ui_inst; put(p+'inst',ui_inst);
+      const yy=yearRent(u,yr); ky+=yy.k; ny+=yy.n; put(p+'ky',yy.k); put(p+'ny',yy.n); put(p+'mo',yy.mo,'n');
+      R.units.push({oi,ui,ob,u,next,st,days,betrag});
+    });
+    let ainst=0; ob.historie.forEach(h=>{ if (String(h.datum).slice(0,4)===yr) ainst+=num(h.kosten); }); inst+=ainst; put(`o${oi}ainst`,ainst);
+    TK+=k; TN+=n; TKY+=ky; TNY+=ny; put(`o${oi}ky`,ky); put(`o${oi}ny`,ny); TF+=f; TU+=ob.einheiten.length; TInst+=inst;
+    R.obj.push({k,n,f,inst});
+    put(`o${oi}k`,k); put(`o${oi}n`,n); put(`o${oi}g`,k+n); put(`o${oi}kj`,k*12); put(`o${oi}nj`,n*12); put(`o${oi}gj`,(k+n)*12);
+    put(`o${oi}f`,f,'qm'); put(`o${oi}kqm`,f?k/f:NaN,'eqm'); put(`o${oi}inst`,inst);
+  });
+  R.TK=TK; R.moegl=moegl; put('tky',TKY); put('tny',TNY); put('tgy',TKY+TNY);
+  const nx=R.units.filter(x=>x.st==='sperr').sort((a,b)=>a.next.localeCompare(b.next))[0]; R.nextErh=nx||null;
+  put('tk',TK); put('tn',TN); put('tg',TK+TN); put('tkj',TK*12); put('tnj',TN*12); put('tgj',(TK+TN)*12);
+  put('tf',TF,'qm'); put('tu',TU,'n'); put('tkqm',TF?TK/TF:NaN,'eqm'); put('tg0',TK+TN,'eur0'); put('tn0',TN,'eur0'); put('tkqm0',TF?TK/TF:NaN,'eur'); put('tkau',TKau); put('tinst',TInst);
+  put('moegl',moegl,'n'); put('plus',plus); put('plusj',plus*12);
+  put('limit',lim,'pct');
+}
+
+/* ================= Rendering-Bausteine ================= */
+const o = (k,cls='') => { const f=F[k]||{t:'–'}; return `<span data-k="${k}" class="${cls}${f.neg?' neg':''}">${esc(f.t)}</span>`; };
+function inp(path,type='num',opt={}){
+  const v=getP(S,path); let val;
+  if (type==='pct') val=fmtIn(num(v)*100);
+  else if (type==='num'||type==='int') val=fmtIn(num(v));
+  else if (type==='numo') val=has(v)?fmtIn(num(v)):'';
+  else val=v??'';
+  const id='i-'+path.replace(/\./g,'-');
+  const unit = opt.unit ?? (type==='pct'?'%':(type==='num'?'€':''));
+  const cls = (type==='text'||type==='tel'||type==='email')?'in text':type==='date'?'in date':'in';
+  const im = type==='int'?'inputmode="numeric"':(['num','numo','pct'].includes(type)?'inputmode="decimal"':type==='tel'?'inputmode="tel"':type==='email'?'inputmode="email"':'');
+  const tp = type==='date'?'date':type==='tel'?'tel':type==='email'?'email':'text';
+  return `<span class="fld${unit?'':' nounit'}${unit.length>1?' wu':''}${opt.wide?' wide':''}"${opt.style?` style="${opt.style}"`:''}><input id="${id}" class="${cls}" type="${tp}" data-p="${path}" data-t="${type}" value="${esc(val)}" ${im} autocomplete="off" autocorrect="off" autocapitalize="${type==='text'?'sentences':'off'}" spellcheck="false" ${opt.ph?`placeholder="${esc(opt.ph)}"`:''} aria-label="${esc(opt.label||'')}">${unit?`<span class="u">${unit}</span>`:''}</span>`;
+}
+const nameIn = (path,label,ph) => `<input id="i-${path.replace(/\./g,'-')}" class="name" data-p="${path}" data-t="text" value="${esc(getP(S,path))}" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="${esc(label||'Bezeichnung')}" ${ph?`placeholder="${esc(ph)}"`:''}>`;
+const delBtn = (path,i,label) => `<button class="del" type="button" data-act="del" data-p="${path}" data-i="${i}" aria-label="${esc(label||'Entfernen')}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
+const addBtn = (path,kind,label) => `<button class="add" type="button" data-act="add" data-p="${path}" data-kind="${kind}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>${esc(label)}</button>`;
+const chev = '<svg class="chev" width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 6 6-6 6"/></svg>';
+const COLORS = ['var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)'];
+const fRow = (label,path,type,opt={}) => `<div class="row"><label class="l" for="i-${path.replace(/\./g,'-')}">${label}</label>${inp(path,type,Object.assign({label},opt))}</div>`;
+const outRow = (label,k,small) => `<div class="row"><span class="l">${label}</span><span class="r">${o(k)}${small?`<small>${small}</small>`:''}</span></div>`;
+function chip(st){
+  if (st==='moeglich') return '<span class="chip warn">⚠︎ Möglich</span>';
+  if (st==='sperr') return '<span class="chip">Sperrfrist</span>';
+  return '<span class="chip bad">Datum fehlt</span>';
+}
+function unitLabel(u){ return [has(u.we)&&u.we!==0?`WE ${esc(u.we)}`:'', esc(u.lage)].filter(Boolean).join(' · ') || 'Einheit'; }
+function confirmBtn(key,path,i,label){
+  const on = UI.confirm===key;
+  return `<button class="btn small ${on?'danger':''}" style="${on?'':'background:none;color:var(--muted)'}" type="button" data-act="${on?'del':'arm'}" data-key="${key}" data-p="${path}" data-i="${i}" data-after="${on?'back':''}">${on?'Wirklich löschen?':esc(label)}</button>`;
+}
+
+/* ================= Diagramme ================= */
+const CH = {
+  objShare(){
+    if (!S.objekte.length) return '';
+    const max=Math.max(1,...R.obj.map(x=>x.k));
+    return `<div class="objbar" role="img" aria-label="Kaltmiete je Objekt">${S.objekte.map((ob,i)=>`
+      <div class="brow"><span><i class="dot" style="background:${COLORS[i%5]}"></i>${esc(ob.name)}</span><b class="num">${fmt(R.obj[i].k,'eur')}</b>
+      <div class="track"><span style="width:${(Math.max(0,R.obj[i].k)/max*100).toFixed(2)}%;background:${COLORS[i%5]}"></span></div></div>`).join('')}</div>`;
+  },
+  erhNote(){
+    if (!R.moegl) return R.nextErh?`<div class="note info"><span>Nächste mögliche Mieterhöhung: <b>${esc(R.nextErh.u.lage||'Einheit')}</b> (${esc(R.nextErh.ob.name)}) ab ${fmtDate(R.nextErh.next)}.</span></div>`:'';
+    return `<div class="note warn"><span>${R.moegl===1?'Bei 1 Einheit ist':'Bei '+R.moegl+' Einheiten ist'} eine Mieterhöhung möglich.</span><button class="btn small" type="button" data-tab="erhoehung">Ansehen</button></div>`;
+  },
+  unitErh(){
+    const x=R.units.find(r=>r.u.id===UI.unit); if(!x) return '';
+    if (x.st==='offen') return `<div class="row"><span class="l">Status</span>${chip('offen')}</div>`;
+    return `<div class="row"><span class="l">Status<small>${x.st==='moeglich'?'Seit '+fmtDate(x.next):'Noch '+untilText(x.days).replace('in ','')}</small></span>${chip(x.st)}</div>`;
+  },
+};
+
+
+/* ================= Rechtslage Mieterhöhung Bayern (Stand 10/2026) ================= */
+const LAW = [
+ ['Was gilt für deine Objekte?', `<p>Mengkofen und Gottfrieding (Landkreis Dingolfing-Landau) stehen <b>nicht</b> in der Bayerischen Mieterschutzverordnung. Die Verordnung gilt vom 1.1.2026 bis 31.12.2029. In Niederbayern umfasst sie nur die Stadt Landshut und einzelne Gemeinden in den Landkreisen Landshut und Kelheim.</p>
+  <p>Für dich heißt das: Es gilt die normale <b>Kappungsgrenze von 20 %</b> statt 15 %, und bei Neuvermietung gibt es <b>keine Mietpreisbremse</b>.</p>
+  <p class="muted">Kaufst du ein Objekt in einer anderen Gemeinde dazu, prüfe die Anlage der Verordnung.</p>`],
+ ['Wie hoch darf erhöht werden?', `<p>Zwei Grenzen gelten gleichzeitig (§ 558 BGB):</p>
+  <ul><li><b>Ortsübliche Vergleichsmiete:</b> Die neue Miete darf sie nicht übersteigen.</li>
+  <li><b>Kappungsgrenze:</b> Innerhalb von 3 Jahren darf die Miete um höchstens 20 % steigen. Gerechnet wird ab der Miete von vor 3 Jahren, nicht pro Erhöhung.</li></ul>
+  <p>Erhöhungen wegen Modernisierung (§ 559) und Betriebskosten-Anpassungen (§ 560) zählen nicht zur Kappungsgrenze.</p>`],
+ ['Wann ist eine Erhöhung möglich?', `<ul><li>Das Erhöhungsverlangen darf frühestens <b>12 Monate</b> nach der letzten Erhöhung zugehen.</li>
+  <li>Die neue Miete gilt frühestens <b>15 Monate</b> nach der letzten Erhöhung.</li></ul>
+  <p>Dein Zeitplan „alle 36 Monate“ schöpft die 20 % in einem Schritt aus. Rechtlich wären auch kleinere Schritte schon nach 15 Monaten möglich, solange in 3 Jahren insgesamt höchstens 20 % zusammenkommen. Den Spielraum zeigt jede Einheit unter „Spielraum Kappungsgrenze“ an. Dafür sollte der Mietverlauf gepflegt sein.</p>`],
+ ['So läuft die Erhöhung ab', `<ol><li><b>Textform</b> reicht: Brief oder E-Mail an alle Mieter laut Vertrag, mit Begründung.</li>
+  <li>Der Mieter hat bis zum <b>Ende des 2. Kalendermonats</b> nach Zugang Zeit zuzustimmen.</li>
+  <li>Die neue Miete gilt ab dem <b>3. Kalendermonat</b> nach Zugang.</li>
+  <li>Stimmt der Mieter nicht zu, kannst du innerhalb von <b>3 weiteren Monaten</b> auf Zustimmung klagen.</li></ol>
+  <p class="muted">Beispiel: Zugang im Oktober, Zustimmung bis 31.12., neue Miete ab 1.1.</p>`],
+ ['Begründung der Erhöhung', `<p>Zulässig sind (§ 558a BGB):</p>
+  <ul><li>ein Mietspiegel</li><li>eine Mietdatenbank</li><li>ein Gutachten eines Sachverständigen</li><li>mindestens <b>3 vergleichbare Wohnungen</b> mit Adresse, Größe und Miete pro m²</li></ul>
+  <p>Gibt es für die Gemeinde keinen Mietspiegel, sind Vergleichswohnungen der einfachste Weg. Sie dürfen auch aus deinem eigenen Bestand stammen.</p>`],
+ ['Ausnahmen und Sonderfälle', `<ul><li><b>Staffel- oder Indexmiete</b> im Vertrag: Dann ist keine Erhöhung auf die Vergleichsmiete möglich.</li>
+  <li><b>Modernisierung</b> (§ 559): Bis zu 8 % der Kosten pro Jahr dürfen umgelegt werden, höchstens 3 €/m² in 6 Jahren. Liegt die Miete unter 7 €/m², sind es höchstens 2 €/m². Deine Mieten liegen meist darunter.</li>
+  <li><b>Nebenkosten-Vorauszahlungen</b> passt du nach der Abrechnung separat an (§ 560). Das ist keine Mieterhöhung.</li></ul>`],
+ ['Geplante Änderungen', `<p>Seit Juli 2026 liegt ein Gesetzentwurf der Bundesregierung zum Mietrecht vor (BT-Drs. 21/6807). Er betrifft vor allem Indexmieten in angespannten Gebieten, möblierte und Kurzzeitvermietung sowie vereinfachte Modernisierungserhöhungen. Die Kappungsgrenze nach § 558 ändert er nicht.</p>
+  <p class="muted">Noch nicht in Kraft. Für deine Gemeinden sind die Index-Regeln derzeit ohnehin nicht einschlägig.</p>`],
+];
+
+
+const GEWERKE=['Sanitär','Heizung','Elektro','Maler','Bodenleger','Schreiner','Fenster/Türen','Dach','Fliesen','Garten','Hausmeister','Schornsteinfeger','Sonstiges'];
+const gewerkOpts = cur => '<option value="">– Gewerk –</option>'+GEWERKE.map(g=>`<option ${g===cur?'selected':''}>${g}</option>`).join('')+(cur&&!GEWERKE.includes(cur)?`<option selected>${esc(cur)}</option>`:'');
+// alle Kosten-Einträge mit Pfad
+function allCosts(){
+  const out=[];
+  S.objekte.forEach((ob,oi)=>{
+    ob.historie.forEach((h,hi)=>out.push({ob,oi,where:'Allgemein',path:`objekte.${oi}.historie`,hi,h}));
+    ob.einheiten.forEach((u,ui)=>u.historie.forEach((h,hi)=>out.push({ob,oi,u,where:u.lage||'Einheit',path:`objekte.${oi}.einheiten.${ui}.historie`,hi,h})));
+  });
+  return out;
+}
+function costItem(c,openId){
+  const P=`${c.path}.${c.hi}`, id=P.replace(/\./g,'-'), h=c.h;
+  return `<details class="item" data-open="${h.id}" ${UI.open.has(h.id)||openId===h.id?'open':''}>
+    <summary><span class="l"><b>${esc(h.massnahme)||esc(h.gewerk)||'Rechnung'}</b><small>${fmtDate(h.datum)||'ohne Datum'} · ${esc(c.where)}${h.firma?' · '+esc(h.firma):''}</small></span><span class="r num">${fmt(num(h.kosten),'eur')}<small>${esc(h.gewerk)}</small></span>${chev}</summary>
+    <div class="body">
+      <div class="grid2">
+        <div class="full"><label class="cap" for="i-${id}-massnahme">Leistung</label>${inp(P+'.massnahme','text',{label:'Leistung'})}</div>
+        <div><label class="cap" for="i-${id}-datum">Datum</label>${inp(P+'.datum','date',{label:'Datum'})}</div>
+        <div><label class="cap" for="i-${id}-kosten">Betrag</label>${inp(P+'.kosten','num',{label:'Betrag'})}</div>
+        <div><label class="cap" for="g-${id}">Gewerk</label><select id="g-${id}" class="in" data-p="${P}.gewerk" data-t="sel">${gewerkOpts(h.gewerk)}</select></div>
+        <div><label class="cap" for="i-${id}-firma">Firma</label>${inp(P+'.firma','text',{label:'Firma'})}</div>
+        <div><label class="cap" for="i-${id}-rechnung">Rechnungs-Nr.</label>${inp(P+'.rechnung','text',{label:'Rechnungs-Nr.'})}</div>
+        <div><label class="cap" for="i-${id}-garantie">Garantie bis</label>${inp(P+'.garantie','date',{label:'Garantie bis'})}</div>
+      </div>
+      <div style="text-align:right">${confirmBtn('h-'+h.id,c.path,c.hi,'Rechnung löschen').replace(' data-after="back"',' data-after=""')}</div>
+    </div>
+  </details>`;
+}
+
+
+const AV_LBL={miete:'Mieteinnahmen für Wohnungen', erh:'Erhaltungsaufwendungen'};
+const withErh=()=>S.settings.exportErh!==false;
+const avZeile=(Y,k)=>{ const z=k==='miete'?'13':'55'; return String(Y)==='2025'?`Anlage V, Zeile ${z}`:`Anlage V (Formular 2025: Zeile ${z})`; };
+
+/* ================= Navigation ================= */
+const UI = {notice:'', open:new Set(), kAll:false, kf:null, kMsg:'', tab:'uebersicht', obj:null, unit:null, stack:[], confirm:null, erh:null, backup:'', importMsg:'', importErr:'', pwMsg:'', pwErr:'', copyMsg:''};
+const TABS = [
+  ['uebersicht','Übersicht','<path d="M3 12.5 12 4l9 8.5"/><path d="M5.5 10.5V20h13v-9.5"/>'],
+  ['objekte','Objekte','<rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 8h2M14 8h2M8 12h2M14 12h2M10.5 20.5v-4h3v4"/>'],
+  ['kosten','Kosten','<path d="M14.5 6.5a3.5 3.5 0 0 0-4.6 4.4L4 16.8 7.2 20l5.9-5.9a3.5 3.5 0 0 0 4.4-4.6l-2.2 2.2-2.3-.6-.6-2.3z"/>'],
+  ['erhoehung','Erhöhung','<path d="M4 17 10 11l4 4 6-7"/><path d="M15 8h5v5"/>'],
+  ['steuer','Steuer','<path d="M7 3.5h7l4 4V20.5H7z"/><path d="M14 3.5v4h4M10 12h5M10 16h5"/>'],
+
+];
+const findObj = id => S.objekte.findIndex(x=>x.id===id);
+function findUnit(id){ for (let oi=0;oi<S.objekte.length;oi++){ const ui=S.objekte[oi].einheiten.findIndex(u=>u.id===id); if(ui>=0) return [oi,ui]; } return [-1,-1]; }
+function curView(){ if (UI.unit) return 'einheit'; if (UI.obj) return 'objekt'; return UI.tab; }
+function push(next){ UI.stack.push({obj:UI.obj,unit:UI.unit}); Object.assign(UI,{obj:null,unit:null,confirm:null,erh:null},next); render(); scrollTo(0,0); }
+function back(){ const p=UI.stack.pop()||{obj:null,unit:null}; UI.obj=p.obj; UI.unit=p.unit; UI.confirm=null; UI.erh=null;
+  if (UI.unit && findUnit(UI.unit)[0]<0) UI.unit=null; if (UI.obj && findObj(UI.obj)<0) UI.obj=null; render(); scrollTo(0,0); }
+function backLabel(){
+  const p=UI.stack[UI.stack.length-1]; if(!p) return 'Zurück';
+  if (p.unit){ const [oi,ui]=findUnit(p.unit); return oi>=0?(S.objekte[oi].einheiten[ui].lage||'Einheit'):'Zurück'; }
+  if (p.obj){ const i=findObj(p.obj); return i>=0?S.objekte[i].name:'Zurück'; }
+  return (TABS.find(t=>t[0]===UI.tab)||[])[1]||'Zurück';
+}
+function renderTabs(){
+  $('#dataBtn').classList.toggle('on', UI.tab==='daten');
+  $('#tabs').innerHTML = TABS.map(([k,l,ic])=>`<button class="tab" type="button" data-tab="${k}" ${UI.tab===k?'aria-current="page"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ic}</svg>${l}</button>`).join('');
+  const sub = !!(UI.obj||UI.unit);
+  $('#backBtn').hidden=!sub; if (sub) $('#backLbl').textContent=backLabel().slice(0,22);
+}
+function render(){
+  compute();
+  $('#view').innerHTML=(UI.notice?`<div class="note info" style="margin:4px 0 8px"><span>${esc(UI.notice)}</span><button class="btn small" type="button" data-act="clearNotice">Okay</button></div>`:'')+(VIEWS[curView()]||VIEWS.uebersicht)();
+  renderTabs(); refresh();
+}
+function refresh(){
+  compute();
+  document.querySelectorAll('#view [data-k]').forEach(el=>{ const f=F[el.dataset.k]; if(!f) return; el.textContent=f.t; el.classList.toggle('neg',f.neg); });
+  document.querySelectorAll('#view [data-chart]').forEach(el=>{ const fn=CH[el.dataset.chart]; if(fn) el.innerHTML=fn(); });
+}
+
+/* ================= Ansichten ================= */
+const VIEWS = {
+uebersicht(){
+  return `
+  <h1 class="title">Vermietung ${new Date().getFullYear()}</h1>
+  ${backupBanner()}
+  ${S.beispiel?`<div class="note info" style="margin:0 0 12px"><span>Das sind Beispielwerte. Importiere deine Daten unter Daten oder überschreibe die Werte direkt.</span><button class="btn small" type="button" data-act="dismissDemo">Okay</button></div>`:''}
+  <section class="card hero">
+    <div>
+      <div class="lbl">Mieteinnahmen pro Monat · kalt</div>
+      <div class="kpi xl">${o('tk')}</div>
+      <div class="subl">${o('tkj')} im Jahr · ${o('tu')} Einheiten</div>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="lbl">Warmmiete</div><div class="tv">${o('tg0')}</div><div class="subl">pro Monat</div></div>
+      <div class="tile"><div class="lbl">Nebenkosten</div><div class="tv">${o('tn0')}</div><div class="subl">pro Monat</div></div>
+      <div class="tile"><div class="lbl">Kalt / m²</div><div class="tv">${o('tkqm0')}</div><div class="subl">Durchschnitt</div></div>
+    </div>
+  </section>
+  <div data-chart="erhNote"></div>
+  <div class="sec">Kaltmiete je Objekt</div>
+  <section class="card hero"><div data-chart="objShare"></div></section>
+  
+
+  <div class="sec">Objekte</div>
+  <div class="card">
+    ${S.objekte.map((ob,oi)=>`<div class="row go" data-obj="${ob.id}"><span class="l"><i class="dot" style="background:${COLORS[oi%5]}"></i>${esc(ob.name)}<small>${ob.einheiten.length} ${ob.einheiten.length===1?'Einheit':'Einheiten'} · ${o(`o${oi}f`)}</small></span><span class="r">${o(`o${oi}k`)}<small>warm ${o(`o${oi}g`)}</small></span>${chev}</div>`).join('') || '<div class="empty">Noch keine Objekte</div>'}
+  </div>
+
+  <div class="sec">Gesamt</div>
+  <div class="card">
+    <div class="row"><span class="l">Kaltmiete</span><span class="r">${o('tk')}<small>${o('tkj')} / Jahr</small></span></div>
+    <div class="row"><span class="l">Nebenkosten</span><span class="r">${o('tn')}<small>${o('tnj')} / Jahr</small></span></div>
+    <div class="row total"><span class="l">Gesamt</span><span class="r">${o('tg')}<small>${o('tgj')} / Jahr</small></span></div>
+  </div>
+
+  <div class="sec">Kennzahlen</div>
+  <div class="card">
+    ${outRow('Wohneinheiten','tu')}
+    ${outRow('Wohnfläche gesamt','tf')}
+    ${outRow('Ø Kaltmiete pro m²','tkqm')}
+    ${outRow('Kautionen gesamt','tkau')}
+  </div>`;
+},
+
+objekte(){
+  return `
+  <h1 class="title">Objekte</h1>
+  <div class="card">
+    ${S.objekte.map((ob,oi)=>`<div class="row go" data-obj="${ob.id}"><span class="l"><b>${esc(ob.name)}</b><small>${esc([ob.typ,ob.ort].filter(Boolean).join(' · '))||'&nbsp;'}</small></span><span class="r">${o(`o${oi}k`)}<small>${ob.einheiten.length} ${ob.einheiten.length===1?'Einheit':'Einheiten'}</small></span>${chev}</div>`).join('') || '<div class="empty">Noch keine Objekte</div>'}
+    ${addBtn('objekte','objekt','Objekt hinzufügen')}
+  </div>
+  <p class="hint">Tippe auf ein Objekt, um Wohnungen, Mieter und Konditionen zu bearbeiten.</p>`;
+},
+
+objekt(){
+  const oi=findObj(UI.obj); if(oi<0){ UI.obj=null; return VIEWS.objekte(); }
+  const ob=S.objekte[oi], P=`objekte.${oi}`;
+  return `
+  <h1 class="title">${esc(ob.name)}</h1>
+  <section class="card hero">
+    <div class="kpis">
+      <div><div class="lbl">Kaltmiete / Monat</div><div class="kpi">${o(`o${oi}k`)}</div><div class="subl">${o(`o${oi}kj`)} im Jahr</div></div>
+      <div><div class="lbl">Warmmiete / Monat</div><div class="kpi">${o(`o${oi}g`)}</div><div class="subl">${o(`o${oi}gj`)} im Jahr</div></div>
+    </div>
+  </section>
+
+  <div class="sec">Einheiten</div>
+  <div class="card">
+    ${ob.einheiten.map((u,ui)=>`<div class="row go" data-unit="${u.id}"><span class="l"><b>${unitLabel(u)}</b><small>${esc(u.mieter)||'Kein Mieter eingetragen'} · ${o(`o${oi}u${ui}a`)}</small></span><span class="r">${o(`o${oi}u${ui}k`)}<small>warm ${o(`o${oi}u${ui}g`)}</small></span>${chev}</div>`).join('') || '<div class="empty">Noch keine Einheiten</div>'}
+    ${addBtn(`${P}.einheiten`,'einheit','Einheit hinzufügen')}
+  </div>
+
+  <div class="sec">Übersicht</div>
+  <div class="card tbl-wrap">
+    <table>
+      <thead><tr><th>Wohnung</th><th>m²</th><th>Kalt</th><th>NK</th><th>Gesamt</th><th>€ kalt/m²</th><th>€ warm/m²</th></tr></thead>
+      <tbody>
+        ${ob.einheiten.map((u,ui)=>`<tr><td>${esc(u.lage)||'–'}</td><td>${nfN1.format(num(u.flaeche))}</td><td>${o(`o${oi}u${ui}k`)}</td><td>${o(`o${oi}u${ui}n`)}</td><td>${o(`o${oi}u${ui}g`)}</td><td>${num(u.flaeche)?nfN2.format(num(u.kalt)/num(u.flaeche)):'–'}</td><td>${num(u.flaeche)?nfN2.format((num(u.kalt)+num(u.nk))/num(u.flaeche)):'–'}</td></tr>`).join('')}
+        <tr class="em"><td>Pro Monat</td><td></td><td>${o(`o${oi}k`)}</td><td>${o(`o${oi}n`)}</td><td>${o(`o${oi}g`)}</td><td></td><td></td></tr>
+        <tr class="em"><td>Pro Jahr</td><td></td><td>${o(`o${oi}kj`)}</td><td>${o(`o${oi}nj`)}</td><td>${o(`o${oi}gj`)}</td><td></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sec">Objektdaten</div>
+  <div class="card">
+    ${fRow('Bezeichnung',`${P}.name`,'text',{wide:1})}
+    ${fRow('Art',`${P}.typ`,'text',{wide:1,ph:'z. B. Mehrfamilienhaus'})}
+    ${fRow('Ort',`${P}.ort`,'text',{wide:1})}
+  </div>
+  <div style="margin-top:18px;text-align:center">${confirmBtn('obj-'+ob.id,'objekte',oi,'Objekt löschen')}</div>`;
+},
+
+einheit(){
+  const [oi,ui]=findUnit(UI.unit); if(oi<0){ UI.unit=null; return VIEWS.objekte(); }
+  const ob=S.objekte[oi], u=ob.einheiten[ui], P=`objekte.${oi}.einheiten.${ui}`, p=`o${oi}u${ui}`;
+  const x=R.units.find(r=>r.u.id===u.id);
+  const E=UI.erh;
+  return `
+  <h1 class="title">${unitLabel(u)}</h1>
+  <p class="hint" style="margin:-8px 4px 14px">${esc(ob.name)}</p>
+  <section class="card hero">
+    <div class="kpis">
+      <div><div class="lbl">Gesamtmiete (warm)</div><div class="kpi">${o(p+'g')}</div><div class="subl">${o(p+'gj')} im Jahr</div></div>
+      <div><div class="lbl">Kalt pro m²</div><div class="kpi sm">${o(p+'kqm')}</div><div class="subl">warm ${o(p+'wqm')}</div></div>
+    </div>
+  </section>
+
+  <div class="sec">Mieter</div>
+  <div class="card">
+    ${fRow('Hauptmieter',`${P}.mieter`,'text',{wide:1})}
+    ${fRow('Telefon',`${P}.telefon`,'tel',{wide:1})}
+    ${fRow('E-Mail',`${P}.email`,'email',{wide:1})}
+    ${fRow('Bewohner',`${P}.bewohner`,'numo')}
+    ${fRow('Mietbeginn',`${P}.beginn`,'date')}
+    ${fRow('Mietende (befristet)',`${P}.ende`,'date')}
+    ${(u.telefon||u.email)?`<div class="row"><span class="l">Kontakt</span><span class="r">${u.telefon?`<a href="tel:${esc(String(u.telefon).replace(/[^\d+]/g,''))}">Anrufen</a>`:''}${u.telefon&&u.email?' · ':''}${u.email?`<a href="mailto:${esc(u.email)}">E-Mail</a>`:''}</span></div>`:''}
+  </div>
+
+  <div class="sec">Konditionen</div>
+  <div class="card">
+    ${fRow('Nettokaltmiete',`${P}.kalt`,'num')}
+    ${fRow('NK-Vorauszahlung',`${P}.nk`,'num')}
+    <div class="row total"><span class="l">Gesamtmiete (warm)</span><span class="r">${o(p+'g')}</span></div>
+    ${fRow('Kaution',`${P}.kaution`,'numo',{unit:'€'})}
+  </div>
+
+  <div class="sec">Mieterhöhung</div>
+  <div class="card">
+    ${fRow('Letzte Erhöhung am',`${P}.letzteErh`,'date')}
+    <div class="row"><span class="l">Nächstmögliche Erhöhung</span><span class="r">${o(p+'next')}</span></div>
+    <div data-chart="unitErh"></div>
+    <div class="row"><span class="l">Möglicher Erhöhungsbetrag<small>${o('limit')} der Kaltmiete</small></span><span class="r">${o(p+'eb')}</span></div>
+    <div class="row total"><span class="l">Mögliche Kaltmiete</span><span class="r">${o(p+'em')}</span></div>
+    <div class="row"><span class="l">Gesetzlich: Verlangen ab<small>12 Monate nach letzter Erhöhung</small></span><span class="r">${o(p+'lr')}</span></div>
+    <div class="row"><span class="l">Frühestens wirksam ab<small>15 Monate nach letzter Erhöhung</small></span><span class="r">${o(p+'le')}</span></div>
+    <div class="row"><span class="l">Spielraum Kappungsgrenze<small>20 % auf ${o(p+'kb')} (Miete am ${o(p+'kbd')}), max. ${o(p+'kmax')}</small></span><span class="r">${o(p+'krest')}</span></div>
+    ${E?`
+      <div class="item">
+        <div class="item-g">
+          <div><label class="cap" for="erhKalt">Neue Kaltmiete</label><span class="fld"><input id="erhKalt" class="in" type="text" inputmode="decimal" value="${esc(E.kalt)}"><span class="u">€</span></span></div>
+          <div><label class="cap" for="erhDatum">Gültig ab</label><span class="fld nounit"><input id="erhDatum" class="in date" type="date" value="${esc(E.datum)}"></span></div>
+        </div>
+        <div class="btnrow"><button class="btn primary small" type="button" data-act="erhSave">Übernehmen</button><button class="btn small" type="button" data-act="erhCancel">Abbrechen</button></div>
+        <p class="hint" style="margin:0">Die Kaltmiete und das Datum der letzten Erhöhung werden aktualisiert; die alte Miete landet im Mietverlauf.</p>
+      </div>`:`<button class="add" type="button" data-act="erhStart">Erhöhung eintragen</button>`}
+  </div>
+  ${u.verlauf.length?`
+  <div class="sec">Mietverlauf</div>
+  <div class="card">
+    ${u.verlauf.map((h,hi)=>`<div class="row"><span class="l">${fmtDate(h.datum)||'–'}<small>${fmt(num(h.alt),'eur')} → ${fmt(num(h.neu),'eur')}</small></span><span class="r">${num(h.alt)?fmt((num(h.neu)-num(h.alt))/num(h.alt),'pct'):''}</span>${delBtn(`${P}.verlauf`,hi,'Eintrag entfernen')}</div>`).join('')}
+  </div>`:''}
+
+  <div class="sec">Objekt-Infos</div>
+  <div class="card">
+    ${fRow('Wohneinheit (WE-Nr.)',`${P}.we`,'numo')}
+    ${fRow('Lage',`${P}.lage`,'text',{ph:'z. B. EG links'})}
+    ${fRow('Wohnfläche',`${P}.flaeche`,'num',{unit:'m²'})}
+    ${fRow('Zimmer',`${P}.zimmer`,'numo')}
+    ${fRow('Keller-Nr.',`${P}.keller`,'text')}
+    ${fRow('Stellplatz-Nr.',`${P}.stellplatz`,'text')}
+    ${fRow('Ausgegebene Schlüssel',`${P}.schluessel`,'numo')}
+  </div>
+
+  <div class="sec">Technik</div>
+  <div class="card">
+    ${fRow('Zähler Strom',`${P}.zStrom`,'text',{wide:1})}
+    ${fRow('Zähler Wasser',`${P}.zWasser`,'text',{wide:1})}
+    ${fRow('Zähler Heizung',`${P}.zHeizung`,'text',{wide:1})}
+  </div>
+
+  <div class="sec">Erhaltungsaufwendungen <span class="num">${o(p+'inst')} in ${esc(S.steuerJahr)}</span></div>
+  <div class="card">
+    ${u.historie.map((h,hi)=>costItem({ob,oi,u,where:u.lage||'Einheit',path:`${P}.historie`,hi,h},UI.kNew)).join('') || '<div class="empty">Noch keine Rechnungen</div>'}
+    ${addBtn(`${P}.historie`,'historie','Rechnung hinzufügen')}
+  </div>
+
+  <div class="sec">Notiz</div>
+  <div class="card stack"><label class="sr" for="i-${P.replace(/\./g,'-')}-notiz">Notiz</label><textarea id="i-${P.replace(/\./g,'-')}-notiz" class="in" data-p="${P}.notiz" data-t="text" placeholder="Freitext">${esc(u.notiz)}</textarea></div>
+  <div style="margin-top:18px;text-align:center">${confirmBtn('unit-'+u.id,`objekte.${oi}.einheiten`,ui,'Einheit löschen')}</div>`;
+},
+
+kosten(){
+  const Y=String(S.steuerJahr), all=allCosts(), list=UI.kAll?all:all.filter(c=>String(c.h.datum).slice(0,4)===Y);
+  const sum=list.reduce((a,c)=>a+num(c.h.kosten),0);
+  const kf=UI.kf||{};
+  const unitOpts=S.objekte.map((ob,oi)=>`<optgroup label="${esc(ob.name)}"><option value="${oi}|a" ${kf.ziel===oi+'|a'?'selected':''}>${esc(ob.name)} – allgemein (ganzes Haus)</option>${ob.einheiten.map((u,ui)=>`<option value="${oi}|${ui}" ${kf.ziel===oi+'|'+ui?'selected':''}>${esc(u.lage||'Einheit')}${u.mieter?' – '+esc(u.mieter):''}</option>`).join('')}</optgroup>`).join('');
+  // Summen je Wohnung
+  const by=new Map(); list.forEach(c=>{ const k=c.ob.id+'|'+c.where; const x=by.get(k)||{ob:c.ob,where:c.where,s:0,n:0}; x.s+=num(c.h.kosten); x.n++; by.set(k,x); });
+  return `
+  <div class="title-row"><h1 class="title">Erhaltungs&shy;aufwendungen</h1><label style="width:120px;margin-bottom:14px"><span class="cap">Jahr</span>${inp('steuerJahr','int',{label:'Jahr'})}</label></div>
+  <section class="card hero">
+    <div class="kpis">
+      <div><div class="lbl">${UI.kAll?'Kosten gesamt':'Kosten '+esc(Y)}</div><div class="kpi">${fmt(sum,'eur')}</div><div class="subl">${list.length} ${list.length===1?'Rechnung':'Rechnungen'}</div></div>
+      <div style="align-self:end;text-align:right"><div class="seg" role="group" aria-label="Zeitraum"><button type="button" data-act="kAll" data-v="0" aria-pressed="${!UI.kAll}">${esc(Y)}</button><button type="button" data-act="kAll" data-v="1" aria-pressed="${!!UI.kAll}">Alle</button></div></div>
+    </div>
+  </section>
+
+  <div class="sec">Rechnung erfassen</div>
+  <div class="card stack">
+    ${S.objekte.length?`
+    <div><label class="cap" for="kfZiel">Wohnung</label><select id="kfZiel" class="in">${unitOpts}</select></div>
+    <div class="grid2">
+      <div><label class="cap" for="kfDatum">Datum</label><span class="fld nounit"><input id="kfDatum" class="in date" type="date" value="${esc(kf.datum||todayISO())}"></span></div>
+      <div><label class="cap" for="kfBetrag">Betrag (brutto)</label><span class="fld"><input id="kfBetrag" class="in" type="text" inputmode="decimal" value="${esc(kf.betrag||'')}" autocomplete="off"><span class="u">€</span></span></div>
+      <div><label class="cap" for="kfGewerk">Gewerk</label><select id="kfGewerk" class="in">${gewerkOpts(kf.gewerk||'')}</select></div>
+      <div><label class="cap" for="kfFirma">Firma</label><span class="fld nounit"><input id="kfFirma" class="in text" type="text" value="${esc(kf.firma||'')}" autocomplete="off" list="kfFirmen"></span></div>
+      <div class="full"><label class="cap" for="kfLeistung">Leistung</label><span class="fld nounit"><input id="kfLeistung" class="in text" type="text" placeholder="z. B. Wasserhahn Küche getauscht" value="${esc(kf.leistung||'')}" autocomplete="off"></span></div>
+      <div class="full"><label class="cap" for="kfRechnung">Rechnungs-Nr. (optional)</label><span class="fld nounit"><input id="kfRechnung" class="in text" type="text" value="${esc(kf.rechnung||'')}" autocomplete="off"></span></div>
+    </div>
+    <datalist id="kfFirmen">${[...new Set(all.map(c=>c.h.firma).filter(Boolean))].map(f=>`<option value="${esc(f)}">`).join('')}</datalist>
+    <div class="btnrow"><button class="btn primary" type="button" data-act="kSave">Speichern</button></div>
+    ${UI.kMsg?`<div class="note ${UI.kMsgBad?'bad':'info'}" style="margin:0">${esc(UI.kMsg)}</div>`:''}`:'<div class="muted">Lege zuerst ein Objekt an.</div>'}
+  </div>
+
+  ${by.size?`<div class="sec">Je Wohnung</div><div class="card">${[...by.values()].sort((a,b)=>b.s-a.s).map(x=>`<div class="row"><span class="l">${esc(x.where)}<small>${esc(x.ob.name)} · ${x.n} ${x.n===1?'Rechnung':'Rechnungen'}</small></span><span class="r">${fmt(x.s,'eur')}</span></div>`).join('')}</div>`:''}
+
+  ${S.objekte.map(ob=>{ const l=list.filter(c=>c.ob===ob).sort((a,b)=>String(b.h.datum).localeCompare(String(a.h.datum)));
+     return l.length?`<div class="sec">${esc(ob.name)} <span class="num">${fmt(l.reduce((a,c)=>a+num(c.h.kosten),0),'eur')}</span></div><div class="card">${l.map(c=>costItem(c,UI.kNew)).join('')}</div>`:''; }).join('')}
+  ${list.length?'':`<p class="hint">${UI.kAll?'Noch keine Rechnungen erfasst.':'Keine Rechnungen in '+esc(Y)+'.'}</p>`}
+  <p class="hint">Handwerker- und Reparaturkosten. Sie erscheinen auch bei der jeweiligen Wohnung und im Steuer-PDF unter „Erhaltungsaufwendungen“ des jeweiligen Objekts (Anlage V).</p>`;
+},
+
+erhoehung(){
+  const list=[...R.units].sort((a,b)=>{ const r={moeglich:0,sperr:1,offen:2}; return r[a.st]-r[b.st] || String(a.next).localeCompare(String(b.next)); });
+  return `
+  <h1 class="title">Mieterhöhung</h1>
+  <section class="card hero">
+    <div class="kpis">
+      <div><div class="lbl">Jetzt möglich</div><div class="kpi">${o('moegl')}</div><div class="subl">von ${o('tu')} Einheiten</div></div>
+      <div><div class="lbl">Mehr Kaltmiete</div><div class="kpi">${o('plus')}</div><div class="subl">${o('plusj')} im Jahr</div></div>
+    </div>
+  </section>
+
+  <div class="sec">Einheiten nach Termin</div>
+  <div class="card">
+    ${list.map(x=>`<div class="row go" data-unit="${x.u.id}"><span class="l"><span class="unitline"><b>${esc(x.u.lage)||'Einheit'}</b>${chip(x.st)}</span><small>${esc(x.ob.name)}${x.u.mieter?' · '+esc(x.u.mieter):''}</small><small>${x.st==='offen'?'Letzte Erhöhung nicht eingetragen':(x.st==='moeglich'?'Möglich seit ':'Möglich ab ')+fmtDate(x.next)+(x.st==='sperr'?' ('+untilText(x.days)+')':'')}</small></span><span class="r">+${fmt(x.betrag,'eur')}<small>${fmt(num(x.u.kalt)+x.betrag,'eur')}</small></span>${chev}</div>`).join('') || '<div class="empty">Noch keine Einheiten</div>'}
+  </div>
+
+  <div class="sec">Regeln</div>
+  <div class="card">
+    ${fRow('Zeitplan (Sperrfrist)','erh.intervall','int',{unit:'Mon.'})}
+    ${fRow('Limit (Kappungsgrenze)','erh.limit','pct')}
+  </div>
+  <p class="hint">Wie in deiner Excel: nächster Termin = letzte Erhöhung + Zeitplan, Betrag = Kaltmiete × Limit. Der Zeitplan von 36 Monaten ist vorsichtiger als das Gesetz – siehe unten.</p>
+
+  <div class="sec">Rechtslage in Bayern</div>
+  <div class="card law">
+    ${LAW.map((x,i)=>`<details class="item" ${i===0?'open':''}><summary><span class="l"><b>${x[0]}</b></span>${chev}</summary><div class="body">${x[1]}</div></details>`).join('')}
+  </div>
+  <p class="hint">Stand: Oktober 2026. Allgemeine Information, keine Rechtsberatung. Im Zweifel Haus &amp; Grund oder einen Anwalt für Mietrecht fragen.</p>`;
+},
+
+steuer(){
+  const Y=esc(S.steuerJahr);
+  const canFile = SCR || (()=>{ try { return window.top===window.self; } catch(e){ return false; } })();
+  return `
+  <div class="title-row"><h1 class="title">Steuer</h1><label style="width:120px;margin-bottom:14px"><span class="cap">Jahr</span>${inp('steuerJahr','int',{label:'Jahr'})}</label></div>
+  <p class="hint" style="margin:-6px 4px 4px">Für jedes Objekt gibst du eine eigene Anlage V ab.</p>
+  ${S.objekte.map((ob,oi)=>`
+    <div class="sec">${esc(ob.name)}</div>
+    <section class="card hero">
+      <div class="kpis">
+        <div><div class="lbl">${AV_LBL.miete}</div><div class="kpi sm">${o(`o${oi}ky`)}</div><div class="subl">${esc(avZeile(S.steuerJahr,'miete'))}</div></div>
+        <div><div class="lbl">${AV_LBL.erh}</div><div class="kpi sm">${o(`o${oi}inst`)}</div><div class="subl">${esc(avZeile(S.steuerJahr,'erh'))}</div></div>
+      </div>
+    </section>
+    <div class="card" style="margin-top:8px">
+      ${ob.einheiten.map((u,ui)=>`<div class="row"><span class="l">${esc(u.lage)||'Einheit'}<small>${o(`o${oi}u${ui}a`)} · ${o(`o${oi}u${ui}mo`)} Monate</small></span><span class="r">${o(`o${oi}u${ui}ky`)}<small>${o(`o${oi}u${ui}k`)} / Monat</small></span></div>`).join('')}
+      <div class="row go" data-tab="kosten"><span class="l">Erhaltungsaufwendungen ${Y}<small>Einträge im Bereich Kosten</small></span><span class="r">${o(`o${oi}inst`)}</span>${chev}</div>
+    </div>`).join('')}
+
+  <div class="sec">PDF für den Steuerberater</div>
+  <div class="card stack">
+    <div class="row" style="padding:0;border:0;min-height:0"><span class="l">Erhaltungsaufwendungen im Export</span><div class="seg" role="group" aria-label="Erhaltungsaufwendungen im Export"><button type="button" data-act="expErh" data-v="1" aria-pressed="${withErh()}">Mit</button><button type="button" data-act="expErh" data-v="0" aria-pressed="${!withErh()}">Ohne</button></div></div>
+    <div class="btnrow">${canFile?'<button class="btn primary" type="button" data-act="stbPdf">PDF erstellen</button>':''}<button class="btn${canFile?'':' primary'}" type="button" data-act="stbCopy">Als Text kopieren</button>${canFile?'<button class="btn" type="button" data-act="stbCsv">CSV</button>':''}</div>
+    ${UI.copyMsg?`<span class="muted" style="font-size:13px">${esc(UI.copyMsg)}</span>`:''}
+    ${canFile?'<span class="muted" style="font-size:13px">Jedes Objekt beginnt im PDF auf einer eigenen Seite.</span>':'<span class="muted" style="font-size:13px">PDF und CSV gibt es in der Scriptable-App.</span>'}
+  </div>
+  <p class="hint">Mieteinnahmen werden Monat für Monat berechnet (Mietbeginn, Mietende, Mietverlauf); ohne diese Angaben = Monatsmiete × 12. Größere Erhaltungsaufwendungen können auf 2–5 Jahre verteilt werden (§ 82b EStDV); innerhalb von 3 Jahren nach dem Kauf gelten Kosten über 15 % des Gebäudewerts als Herstellungskosten (§ 6 Abs. 1 Nr. 1a EStG) – das klärt der Steuerberater.</p>`;
+},
+
+daten(){
+  const L = LOCKS || {};
+  const how = L.prf ? 'Face ID (Passkey) und Wiederherstellungscode' : L.gate ? 'Face ID als Sperre und Wiederherstellungscode' : 'Direkt auf diesem Gerät, Wiederherstellungscode als Notfallschlüssel';
+  const lb = num(S.settings.lastBackup||0);
+  return `
+  <h1 class="title">Sicherheit &amp; Daten</h1>
+  <div class="card">
+    <div class="row"><span class="l">Verschlüsselt<small>AES‑256, nur auf diesem Gerät gespeichert. Die App baut keine Verbindung ins Internet auf.</small></span><span class="chip">Aktiv</span></div>
+    <div class="row"><span class="l">Entsperren<small>${how}</small></span></div>
+    <div class="row"><span class="l">Version<small>Web-App ${WEBVER}</small></span></div>
+  </div>
+  ${!(L.prf||L.gate) ? `<div class="card stack" style="margin-top:10px"><p style="margin:0" class="muted">Mit Face ID öffnet nur noch dein Gesicht die App. Dein iPhone legt dafür einen Passkey im iCloud-Schlüsselbund an.</p>
+     ${UI.fid ? `<button class="btn primary" type="button" data-act="fidConfirm">Face ID bestätigen</button>` : `<button class="btn primary" type="button" data-act="setupFaceId">Face ID einrichten</button>`}
+     ${UI.fidErr?`<div class="note bad" style="margin:0">${esc(UI.fidErr)}</div>`:''}</div>` : ''}
+
+  <div class="sec">Sicherung <span>${lb?'zuletzt '+esc(new Date(lb).toLocaleDateString('de-DE')):'noch keine'}</span></div>
+  <div class="card stack">
+    <p style="margin:0" class="muted">Die Sicherung ist eine verschlüsselte Datei. Du öffnest sie mit Face ID oder deinem Wiederherstellungscode, auch auf einem neuen iPhone. Leg sie in der Dateien-App ab, am besten in iCloud Drive.</p>
+    <div class="btnrow"><button class="btn primary" type="button" data-act="backupFile">Sicherung in Dateien speichern</button><button class="btn" type="button" data-act="restoreOpen">Sicherung öffnen</button></div>
+    <input id="restoreIn" type="file" accept=".json,application/json,text/plain" hidden>
+  </div>
+
+  <div class="sec">Wiederherstellungscode</div>
+  <div class="card stack">
+    ${UI.newCode ? `<p style="margin:0"><b>Dein neuer Code.</b> Schreib ihn auf. Der alte Code gilt ab jetzt nicht mehr, ältere Sicherungen öffnest du aber weiterhin mit ihrem alten Code.</p><div class="rcode">${fmtCode(UI.newCode)}</div><button class="btn" type="button" data-act="recDone">Ich habe ihn notiert</button>`
+      : `<p style="margin:0" class="muted">Hast du den Code verloren? Erstelle einen neuen. Danach solltest du auch eine neue Sicherung speichern.</p><div class="btnrow"><button class="btn" type="button" data-act="newRecovery">Neuen Code erstellen</button></div>`}
+  </div>
+
+  <div class="sec">Daten importieren</div>
+  <div class="card stack">
+    <p style="margin:0" class="muted">Deine Excel-Daten (Vermietung-Daten.json) oder ein Backup aus der Scriptable-Version (beginnt mit „${PREFIX}“). Der Import ersetzt alle aktuellen Daten.</p>
+    <input id="impFile" type="file" accept=".txt,.json,text/plain,application/json">
+    <label class="sr" for="impText">Daten</label>
+    <textarea id="impText" class="code" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="… oder Text hier einfügen"></textarea>
+    <label class="sr" for="impPw">Passwort des Backups</label>
+    <input id="impPw" class="in text" type="text" style="-webkit-text-security:disc" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Passwort (nur bei Backups aus Scriptable)">
+    <div class="btnrow"><button class="btn primary" type="button" data-act="import">Importieren</button></div>
+    ${UI.importErr?`<div class="note bad" style="margin:0">${esc(UI.importErr)}</div>`:''}
+    ${UI.importMsg?`<div class="note info" style="margin:0">${esc(UI.importMsg)}</div>`:''}
+  </div>
+
+  <div class="sec">Alle Daten löschen</div>
+  <div class="card stack">
+    <p style="margin:0" class="muted">Löscht deine Daten von diesem Gerät. Deine Sicherungsdateien bleiben, wo sie sind. Tippe zur Bestätigung LÖSCHEN ein.</p>
+    <label class="sr" for="wipeIn">Bestätigung</label><input id="wipeIn" class="in text" type="text" autocomplete="off" autocapitalize="characters" placeholder="LÖSCHEN">
+    <div class="btnrow"><button class="btn danger" type="button" data-act="wipe">Endgültig löschen</button></div>
+  </div>`;
+},
+};
+
+/* ================= Steuerberater-Export ================= */
+function stbRows(){
+  const Y=S.steuerJahr;
+  const E=withErh();
+  const rows=[['Objekt','Wohnung','Größe (m²)','Kaltmiete / Monat (aktuell)',`Mieteinnahmen ${Y}`].concat(E?[`Erhaltungsaufwendungen ${Y}`]:[])];
+  S.objekte.forEach(ob=>ob.einheiten.forEach(u=>{
+    const y=yearRent(u,Y), inst=instOf(u,Y).reduce((a,h)=>a+num(h.kosten),0);
+    rows.push([ob.name,u.lage,num(u.flaeche),num(u.kalt),y.k].concat(E?[inst]:[]));
+  }));
+  rows.push(['Gesamt','','','',S.objekte.reduce((a,ob)=>a+ob.einheiten.reduce((s,u)=>s+yearRent(u,Y).k,0),0)].concat(E?[allCosts().filter(c=>String(c.h.datum).slice(0,4)===String(Y)).reduce((a,c)=>a+num(c.h.kosten),0)]:[]));
+  if (!E) return rows;
+  rows.push([]);
+  S.objekte.forEach(ob=>{ const a=instOf(ob,Y).reduce((s,h)=>s+num(h.kosten),0); if (a) rows.push([ob.name,'Allgemein','','','',a]); });
+  rows.push([]); rows.push(['Datum','Objekt','Wohnung','Gewerk','Leistung','Firma','Rechnungs-Nr.','Betrag']);
+  allCosts().filter(c=>String(c.h.datum).slice(0,4)===String(Y)).sort((a,b)=>String(a.h.datum).localeCompare(String(b.h.datum))).forEach(c=>rows.push([fmtDate(c.h.datum),c.ob.name,c.where,c.h.gewerk,c.h.massnahme,c.h.firma,c.h.rechnung,num(c.h.kosten)]));
+  return rows;
+}
+function stbText(){
+  compute(); const Y=S.steuerJahr; let t=`Mieteinnahmen ${Y}\n`;
+  S.objekte.forEach((ob,oi)=>{
+    t+=`\n${ob.name}${ob.ort?' ('+ob.ort+')':''}\n`;
+    t+=`  ${AV_LBL.miete}: ${F[`o${oi}ky`].t}\n`;
+    ob.einheiten.forEach((u,ui)=>{ t+=`    ${u.lage||'Einheit'} (${nfN1.format(num(u.flaeche))} m²): ${F[`o${oi}u${ui}ky`].t}\n`; });
+    if (!withErh()) return;
+    t+=`  ${AV_LBL.erh}: ${F[`o${oi}inst`].t}\n`;
+    const hs=[...instOf(ob,Y).map(h=>['Allgemein',h])]; ob.einheiten.forEach(u=>instOf(u,Y).forEach(h=>hs.push([u.lage||'Einheit',h])));
+    hs.sort((a,b)=>String(a[1].datum).localeCompare(String(b[1].datum))).forEach(([w,h])=>{ t+=`    ${fmtDate(h.datum)} ${w}: ${h.massnahme||h.gewerk||'Rechnung'}${h.firma?' – '+h.firma:''}: ${fmt(num(h.kosten),'eur')}\n`; });
+  });
+  t+=`\nGesamt (alle Objekte)\n  ${AV_LBL.miete}: ${F.tky.t}\n`;
+  if (withErh()) t+=`  ${AV_LBL.erh}: ${F.tinst.t}\n`;
+  return t;
+}
+
+/* ================= PDF (eigener Generator, Helvetica, A4) ================= */
+const PW = {r:[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584, 350, 556, 350, 222, 556, 333, 1000, 556, 556, 333, 1000, 667, 333, 1000, 350, 611, 350, 350, 222, 222, 333, 333, 350, 556, 1000, 333, 1000, 500, 333, 944, 350, 500, 667, 278, 333, 556, 556, 556, 556, 260, 556, 333, 737, 370, 556, 584, 333, 737, 333, 400, 584, 333, 333, 333, 556, 537, 278, 333, 333, 365, 556, 834, 834, 834, 611, 667, 667, 667, 667, 667, 667, 1000, 722, 667, 667, 667, 667, 278, 278, 278, 278, 722, 722, 778, 778, 778, 778, 778, 584, 778, 722, 722, 722, 722, 667, 667, 611, 556, 556, 556, 556, 556, 556, 889, 500, 556, 556, 556, 556, 278, 278, 278, 278, 556, 556, 556, 556, 556, 556, 556, 584, 611, 556, 556, 556, 556, 500, 556, 500], b:[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584, 350, 556, 350, 278, 556, 500, 1000, 556, 556, 333, 1000, 667, 333, 1000, 350, 611, 350, 350, 278, 278, 500, 500, 350, 556, 1000, 333, 1000, 556, 333, 944, 350, 500, 667, 278, 333, 556, 556, 556, 556, 280, 556, 333, 737, 370, 556, 584, 333, 737, 333, 400, 584, 333, 333, 333, 611, 556, 278, 333, 333, 365, 556, 834, 834, 834, 611, 722, 722, 722, 722, 722, 722, 1000, 722, 667, 667, 667, 667, 278, 278, 278, 278, 722, 722, 778, 778, 778, 778, 778, 584, 778, 722, 722, 722, 722, 667, 667, 611, 556, 556, 556, 556, 556, 556, 889, 556, 556, 556, 556, 556, 278, 278, 278, 278, 611, 611, 611, 611, 611, 611, 611, 584, 611, 611, 611, 611, 611, 556, 611, 556]};
+const WIN = {0x20AC:0x80,0x201A:0x82,0x201E:0x84,0x2026:0x85,0x2018:0x91,0x2019:0x92,0x201C:0x93,0x201D:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,0x202F:0x20,0x2009:0x20,0x2011:0x2D,0x00A0:0x20};
+const wb = ch => { const c=ch.codePointAt(0); if (WIN[c]!=null) return WIN[c]; return c<256?c:0x3F; };
+const tw = (s,bold,size) => { let w=0; for (const ch of String(s)) w+=(bold?PW.b:PW.r)[wb(ch)]||556; return w*size/1000; };
+const ps = s => { let o=''; for (const ch of String(s)){ const b=wb(ch); if (b===40||b===41||b===92) o+='\\'+String.fromCharCode(b); else if (b<32||b>126) o+='\\'+b.toString(8).padStart(3,'0'); else o+=String.fromCharCode(b); } return '('+o+')'; };
+function buildPdf(){
+  compute();
+  const Y=S.steuerJahr, W=595.28, H=841.89, M=46, today=fmtDate(todayISO());
+  const C={ink:'0.08 0.10 0.13',muted:'0.40 0.44 0.49',line:'0.84 0.86 0.89',acc:'0.17 0.36 0.54',soft:'0.94 0.96 0.98',white:'1 1 1'};
+  const pages=[]; let ops, y;
+  const f2=v=>v.toFixed(2);
+  const T=(s,x,yy,o={})=>{ const sz=o.size||9.5, b=!!o.bold; let t=String(s); if (o.max){ while(t.length>1 && tw(t,b,sz)>o.max) t=t.slice(0,-1); if (t!==String(s)) t=t.slice(0,-1)+'…'; }
+    const w=tw(t,b,sz); const xx=o.align==='right'?x-w:o.align==='center'?x-w/2:x;
+    ops.push(`BT /${b?'F2':'F1'} ${sz} Tf ${o.color||C.ink} rg ${f2(xx)} ${f2(yy)} Td ${ps(t)} Tj ET`); };
+  const Rf=(x,yy,w,h,c)=>ops.push(`${c} rg ${f2(x)} ${f2(yy)} ${f2(w)} ${f2(h)} re f`);
+  const L=(x1,y1,x2,y2,c=C.line,w=0.6)=>ops.push(`${c} RG ${w} w ${f2(x1)} ${f2(y1)} m ${f2(x2)} ${f2(y2)} l S`);
+
+  const page=()=>{ ops=[]; pages.push(ops); y=H-M; };
+  const need=h=>{ if (y-h<M+28){ page(); T(`${cur} – Mieteinnahmen ${Y} (Fortsetzung)`,M,y-4,{size:9,color:C.muted}); y-=24; } };
+  const e=v=>fmt(v,'eur');
+
+  const cols=[{h:'Wohnung',x:M+8,a:'left',max:170},{h:'Fläche',x:M+250},{h:'Kaltmiete / Monat',x:M+380},{h:'Kaltmiete '+Y,x:W-M-8}];
+  const head=(cs)=>{ Rf(M,y-18,W-2*M,18,C.soft); cs.forEach(c=>T(c.h,c.x,y-12.5,{size:8,bold:true,color:C.muted,align:c.a||'right'})); y-=18; };
+  const row=(cs,vals,o={})=>{ cs.forEach((c,i)=>T(vals[i],c.x,y-13,{size:9.5,bold:!!o.bold,align:c.a||'right',max:c.max})); y-=19; L(M,y,W-M,y,o.bold?C.ink:C.line,o.bold?0.8:0.5); };
+  let cur='';
+
+  S.objekte.forEach((ob,oi)=>{
+    cur=ob.name; page();
+    // Kopf je Objekt
+    Rf(M,y-3,4,30,C.acc);
+    T(ob.name,M+14,y+8,{size:20,bold:true,max:W-2*M-110});
+    T(`Mieteinnahmen ${Y}`,W-M,y+10,{size:10,bold:true,color:C.muted,align:'right'});
+    const sub=[ob.typ,ob.ort].filter(Boolean).join(' · '); if (sub) T(sub,M+14,y-8,{size:9.5,color:C.muted});
+    y-=36;
+    // Kennzahlen dieses Objekts
+    const E=withErh(), tiles=[[AV_LBL.miete,F[`o${oi}ky`].n]].concat(E?[[AV_LBL.erh,F[`o${oi}inst`].n]]:[]);
+    const bw=(W-2*M-8)/2;
+    tiles.forEach(([l,v],i)=>{ const x=M+i*(bw+8);
+      Rf(x,y-46,bw,46,C.soft); T(l,x+10,y-15,{size:8,color:C.muted,max:bw-16}); T(e(v),x+10,y-34,{size:14,bold:true,max:bw-16}); });
+    y-=68;
+    T('Mieteinnahmen',M,y-10,{size:10,bold:true}); y-=16;
+    head(cols);
+    ob.einheiten.forEach((u,ui)=>{ need(22); const p=`o${oi}u${ui}`;
+      row(cols,[u.lage||'Einheit',nfN1.format(num(u.flaeche))+' qm',e(num(u.kalt)),e(F[p+'ky'].n)]); });
+    need(22);
+    row(cols,['Summe',nfN1.format(R.obj[oi].f)+' qm',e(R.obj[oi].k),e(F[`o${oi}ky`].n)],{bold:true});
+    if (!E) return;
+    // Erhaltungsaufwendungen
+    const hs=[]; instOf(ob,Y).forEach(h=>hs.push([{lage:'Allgemein'},h])); ob.einheiten.forEach(u=>instOf(u,Y).forEach(h=>hs.push([u,h])));
+    y-=16; need(60);
+    T(`Erhaltungsaufwendungen ${Y}`,M,y-10,{size:10,bold:true}); y-=16;
+    const ic=[{h:'Datum',x:M+8,a:'left'},{h:'Wohnung',x:M+72,a:'left',max:70},{h:'Leistung',x:M+148,a:'left',max:160},{h:'Firma',x:M+316,a:'left',max:78},{h:'Rechn.-Nr.',x:M+402,a:'left',max:52},{h:'Betrag',x:W-M-8}];
+    head(ic);
+    if (!hs.length) row(ic,['Keine Erhaltungsaufwendungen erfasst','','','','',e(0)]);
+    hs.sort((a,b)=>String(a[1].datum).localeCompare(String(b[1].datum))).forEach(([u,h])=>{ need(22); row(ic,[fmtDate(h.datum),u.lage||'',[h.massnahme,h.gewerk&&h.massnahme?'('+h.gewerk+')':h.gewerk].filter(Boolean).join(' ')||'–',h.firma||'',h.rechnung||'',e(num(h.kosten))]); });
+    need(22); row(ic,['Summe','','','','',e(F[`o${oi}inst`].n)],{bold:true});
+  });
+  if (!pages.length){ cur=''; page(); T('Keine Objekte erfasst.',M,y-12,{size:11}); }
+  else {
+    const E=withErh(); cur='Gesamt'; page();
+    Rf(M,y-3,4,30,C.acc);
+    T('Gesamt',M+14,y+8,{size:20,bold:true});
+    T(`Mieteinnahmen ${Y}`,W-M,y+10,{size:10,bold:true,color:C.muted,align:'right'});
+    T('Alle Objekte',M+14,y-8,{size:9.5,color:C.muted});
+    y-=36;
+    const bw=(W-2*M-8)/2;
+    [[AV_LBL.miete,F.tky.n]].concat(E?[[AV_LBL.erh,F.tinst.n]]:[]).forEach(([l,v],i)=>{ const x=M+i*(bw+8);
+      Rf(x,y-46,bw,46,C.soft); T(l,x+10,y-15,{size:8,color:C.muted,max:bw-16}); T(e(v),x+10,y-34,{size:14,bold:true,max:bw-16}); });
+    y-=68;
+    const gc=E?[{h:'Objekt',x:M+8,a:'left',max:230},{h:AV_LBL.miete,x:M+360},{h:AV_LBL.erh,x:W-M-8}]
+              :[{h:'Objekt',x:M+8,a:'left',max:300},{h:AV_LBL.miete,x:W-M-8}];
+    head(gc);
+    S.objekte.forEach((ob,oi)=>{ need(22); row(gc,[ob.name+(ob.ort?' ('+ob.ort+')':''),e(F[`o${oi}ky`].n)].concat(E?[e(F[`o${oi}inst`].n)]:[])); });
+    need(22); row(gc,['Summe',e(F.tky.n)].concat(E?[e(F.tinst.n)]:[]),{bold:true});
+  }
+
+  // Fußzeile
+  pages.forEach((o,i)=>{ ops=o; L(M,M,W-M,M,C.line,0.5); T(`Vermietung · erstellt am ${today}`,M,M-13,{size:8,color:C.muted}); T(`Seite ${i+1} von ${pages.length}`,W-M,M-13,{size:8,color:C.muted,align:'right'}); });
+
+  // Datei zusammensetzen
+  const objs=[]; const add=s=>{ objs.push(s); return objs.length; };
+  add('<< /Type /Catalog /Pages 2 0 R >>'); add('PAGES');
+  add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+  add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  const kids=[];
+  pages.forEach(o=>{ const c=o.join('\n'); const ci=add(`<< /Length ${c.length} >>\nstream\n${c}\nendstream`);
+    kids.push(add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${ci} 0 R >>`)); });
+  objs[1]=`<< /Type /Pages /Kids [${kids.map(k=>k+' 0 R').join(' ')}] /Count ${kids.length} >>`;
+  let out='%PDF-1.4\n'; const offs=[];
+  objs.forEach((s,i)=>{ offs.push(out.length); out+=`${i+1} 0 obj\n${s}\nendobj\n`; });
+  const xr=out.length;
+  out+=`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`+offs.map(x=>String(x).padStart(10,'0')+' 00000 n \n').join('');
+  out+=`trailer\n<< /Size ${objs.length+1} /Root 1 0 R /Info << /Title ${ps('Mieteinnahmen '+Y)} /Producer (Vermietung) >> >>\nstartxref\n${xr}\n%%EOF`;
+  return out;
+}
+function stbPdf_scr(){
+  let s; try { s=buildPdf(); } catch(err){ UI.copyMsg='PDF konnte nicht erstellt werden.'; render(); return; }
+  const name=`Mieteinnahmen-${S.steuerJahr}.pdf`;
+  if (SCR){ toScr({t:'exportData',b64:btoa(s),name}); UI.copyMsg='PDF erstellt. Wähle jetzt, wo die Datei gespeichert werden soll.'; render(); return; }
+  try{ const u8=Uint8Array.from(s,c=>c.charCodeAt(0)); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([u8],{type:'application/pdf'})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1500); UI.copyMsg='PDF wird gespeichert.'; }
+  catch(e){ UI.copyMsg='PDF-Export ist hier nicht möglich.'; }
+  render();
+}
+window.__vmBuildPdf = () => buildPdf();
+
+function stbCopy(){
+  const t=stbText();
+  const done=m=>{ UI.copyMsg=m; render(); };
+  if (SCR){ toScr({t:'copy',text:t}); done('Kopiert – jetzt z. B. in eine E-Mail einfügen.'); return; }
+  (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>done('Kopiert – jetzt z. B. in eine E-Mail einfügen.'), ()=>{
+    UI.backup=''; done('Kopieren nicht möglich. Text unten markieren und kopieren.'); const ta=document.createElement('textarea'); ta.className='code'; ta.readOnly=true; ta.value=t; [...document.querySelectorAll('#view .stack')].pop().appendChild(ta); ta.select();
+  });
+}
+function stbCsv_scr(){
+  const cell=v=>typeof v==='number'?String(Math.round(v*100)/100).replace('.',','):`"${String(v??'').replace(/"/g,'""')}"`;
+  const csv='﻿'+stbRows().map(r=>r.map(cell).join(';')).join('\r\n');
+  if (SCR){ toScr({t:'export',text:csv,name:`Vermietung-Steuer-${S.steuerJahr}.csv`}); UI.copyMsg='CSV erstellt. Wähle jetzt, wo die Datei gespeichert werden soll.'; render(); return; }
+  try{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`Vermietung-Steuer-${S.steuerJahr}.csv`; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1000); UI.copyMsg='CSV wird gespeichert.'; }
+  catch(e){ UI.copyMsg='Speichern als Datei ist hier nicht möglich – nutze „Als Text kopieren“.'; }
+  render();
+}
+
+/* ================= Interaktion ================= */
+function newItem(kind){
+  switch(kind){
+    case 'objekt': { const ob={id:uid(),name:'Neues Objekt',ort:'',typ:'',historie:[],einheiten:[]}; setTimeout(()=>push({obj:ob.id}),0); return ob; }
+    case 'einheit': { const u=unit({lage:'Neue Einheit'}); setTimeout(()=>push({unit:u.id}),0); return u; }
+    case 'historie': return {id:uid(),datum:todayISO(),massnahme:'',gewerk:'',firma:'',kosten:0,rechnung:'',garantie:''};
+  }
+}
+function onInput(e){
+  const el=e.target; const p=el.dataset.p; if(!p) return;
+  const t=el.dataset.t; let v;
+  if (t==='num'||t==='int') v=parseNum(el.value);
+  else if (t==='numo') v=el.value.trim()===''?'':parseNum(el.value);
+  else if (t==='pct') v=parseNum(el.value)/100;
+  else if (t==='seln') v=Number(el.value);
+  else v=el.value;
+  setP(S,p,v);
+  if (e.type==='change' && (t==='seln'||t==='sel'||p.includes('.historie.')||t==='date'||p==='steuerJahr'||p.startsWith('erh.')||p.endsWith('.lage')||p.endsWith('.name')&&!p.includes('historie'))) { const y=scrollY; render(); scrollTo(0,y); }
+  else refresh();
+  scheduleSave();
+}
+function onClick(e){
+  const tab=e.target.closest('[data-tab]');
+  if (tab){ UI.kMsg=''; UI.tab=tab.dataset.tab; UI.obj=null; UI.unit=null; UI.stack=[]; UI.confirm=null; UI.erh=null; UI.copyMsg=''; render(); scrollTo(0,0); return; }
+  const go=e.target.closest('[data-obj],[data-unit]');
+  if (go && !e.target.closest('input,select,button,a')){ if (go.dataset.unit) push({unit:go.dataset.unit}); else push({obj:go.dataset.obj}); return; }
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const a=b.dataset.act;
+  if (a==='add'){ getP(S,b.dataset.p).push(newItem(b.dataset.kind)); render(); scheduleSave(); }
+  else if (a==='del'){
+    const arr=getP(S,b.dataset.p), i=Number(b.dataset.i); arr.splice(i,1);
+    UI.confirm=null; scheduleSave();
+    if (b.dataset.after==='back') back(); else { const y=scrollY; render(); scrollTo(0,y); }
+  }
+  else if (a==='arm'){ UI.confirm=b.dataset.key; render(); setTimeout(()=>{ if(UI.confirm===b.dataset.key){ UI.confirm=null; if(S) render(); } },4000); }
+  else if (a==='dismissDemo'){ S.beispiel=false; render(); scheduleSave(); }
+  else if (a==='erhStart'){ const [oi,ui]=findUnit(UI.unit); const u=S.objekte[oi].einheiten[ui]; UI.erh={kalt:fmtIn(Math.round(num(u.kalt)*(1+num(S.erh.limit))*100)/100),datum:todayISO()}; render(); const el=$('#erhKalt'); if(el) el.focus(); }
+  else if (a==='erhCancel'){ UI.erh=null; render(); }
+  else if (a==='erhSave'){
+    const [oi,ui]=findUnit(UI.unit); const u=S.objekte[oi].einheiten[ui];
+    const neu=parseNum($('#erhKalt').value), d=$('#erhDatum').value;
+    if (!(neu>0) || !isISO(d)) { $('#erhKalt').focus(); return; }
+    u.verlauf.unshift({id:uid(),datum:d,alt:num(u.kalt),neu});
+    u.kalt=neu; u.letzteErh=d; UI.erh=null; render(); scheduleSave();
+  }
+  else if (a==='kAll'){ UI.kAll=b.dataset.v==='1'; render(); }
+  else if (a==='kSave'){
+    const v=id=>($('#'+id)||{}).value||'';
+    UI.kf={ziel:v('kfZiel'),datum:v('kfDatum'),betrag:v('kfBetrag'),gewerk:v('kfGewerk'),firma:v('kfFirma').trim(),leistung:v('kfLeistung').trim(),rechnung:v('kfRechnung').trim()};
+    const betrag=parseNum(UI.kf.betrag);
+    if (!(betrag>0)){ UI.kMsg='Bitte einen Betrag eintragen.'; UI.kMsgBad=true; render(); $('#kfBetrag').focus(); return; }
+    if (!isISO(UI.kf.datum)){ UI.kMsg='Bitte ein Datum wählen.'; UI.kMsgBad=true; render(); return; }
+    const [oi,ui]=UI.kf.ziel.split('|'); const ob=S.objekte[Number(oi)]; if(!ob) return;
+    const target = ui==='a' ? ob.historie : ob.einheiten[Number(ui)].historie;
+    const h={id:uid(),datum:UI.kf.datum,massnahme:UI.kf.leistung,gewerk:UI.kf.gewerk,firma:UI.kf.firma,kosten:betrag,rechnung:UI.kf.rechnung,garantie:''};
+    target.push(h);
+    const where = ui==='a' ? ob.name+' (allgemein)' : (ob.einheiten[Number(ui)].lage||'Einheit');
+    UI.kMsg=`Gespeichert: ${fmt(betrag,'eur')} für ${where}.`; UI.kMsgBad=false;
+    UI.kf={ziel:UI.kf.ziel,datum:UI.kf.datum};
+    if (UI.kAll===false && String(h.datum).slice(0,4)!==String(S.steuerJahr)) S.steuerJahr=Number(String(h.datum).slice(0,4));
+    render(); scheduleSave();
+  }
+  else if (a==='expErh'){ S.settings.exportErh=b.dataset.v==='1'; UI.copyMsg=''; render(); scheduleSave(); }
+  else if (a==='clearNotice'){ UI.notice=''; render(); }
+  else if (a==='pick'){ toScr({t:'pick',target:b.dataset.target}); }
+  else if (a==='stbCopy') stbCopy();
+  else if (a==='stbCsv') stbCsv();
+  else if (a==='stbPdf') stbPdf();
+  else if (a==='backup') makeBackup();
+  else if (a==='backupFile') saveBackupFile();
+  else if (a==='copyBackup') copyBackup();
+  else if (a==='import') doImport();
+  else if (a==='wipe') wipe();
+  else if (WEBACT[a]) WEBACT[a](b);
+}
+
+document.addEventListener('toggle', e=>{ const d=e.target; if (d.dataset && d.dataset.open){ d.open?UI.open.add(d.dataset.open):UI.open.delete(d.dataset.open); } }, true);
+
+/* ================= Web-Version: Speichern, Schlüssel, Entsperren (wie Finanzplanung Web) ================= */
+/* Aufbau:
+   - Die Daten werden mit einem zufälligen Datenschlüssel (DEK, AES-256-GCM) verschlüsselt.
+   - Der DEK liegt nur "eingepackt" im Tresor, mit mehreren Schlössern:
+       rec  = Wiederherstellungscode (immer vorhanden, zum Aufschreiben)
+       prf  = Face ID / Fingerabdruck über einen Passkey (WebAuthn-PRF)
+       gate = Passkey ohne PRF: Face ID muss bestätigt werden, dann öffnet der Geräteschlüssel
+       dev  = Geräteschlüssel (nicht exportierbar, IndexedDB)
+   - Fällt ein Schloss aus, öffnet ein anderes. Der Code allein reicht immer. */
+const WEBVER = '1';
+const WEB_KEY = 'vm.web.v3';
+let DEKRAW = null, LOCKS = null, CUR_VAULT = null, PENDING = null, hiddenAt = 0;
+const RC_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const rnd = n => crypto.getRandomValues(new Uint8Array(n));
+const fmtCode = c => c.match(/.{1,4}/g).join('-');
+const normCode = s => String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+function newRecoveryCode(){ const b=rnd(24); let s=''; for (const x of b) s+=RC_ALPHA[x&31]; return s; }
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ---- Speichern ---- */
+function setStatus(busy,text){ const s=$('#saveStatus'); if(!s) return; s.classList.toggle('busy',busy); s.lastChild.textContent=text; }
+function scheduleSave(){ setStatus(true,'Speichert …'); clearTimeout(saveTimer); saveTimer=setTimeout(saveNow,500); }
+
+/* ---- Hilfen ---- */
+async function aesKey(raw, usages=['encrypt','decrypt']){ return crypto.subtle.importKey('raw', raw, {name:'AES-GCM'}, false, usages); }
+async function wrapWith(kek, raw){ const iv=rnd(12); const w=await crypto.subtle.encrypt({name:'AES-GCM',iv}, kek, raw); return {iv:b64(iv), w:b64(w)}; }
+async function unwrapWith(kek, lock){ return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(lock.iv)}, kek, ub64(lock.w))); }
+async function kekFromCode(code, saltB64, iter){
+  const base = await crypto.subtle.importKey('raw', te.encode(normCode(code)), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt:ub64(saltB64), iterations:iter, hash:'SHA-256'}, base, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+}
+async function kekFromPrf(prfOut){
+  const base = await crypto.subtle.importKey('raw', prfOut, 'HKDF', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'HKDF', hash:'SHA-256', salt:new Uint8Array(32), info:te.encode('vermietung-v3')}, base, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+}
+
+/* ---- Geräteschlüssel (nicht exportierbar, IndexedDB) ---- */
+function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open('vermietung',1); r.onupgradeneeded=()=>r.result.createObjectStore('keys'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbGet(k){ const db=await idb(); return new Promise((res,rej)=>{ const t=db.transaction('keys').objectStore('keys').get(k); t.onsuccess=()=>res(t.result); t.onerror=()=>rej(t.error); }); }
+async function idbSet(k,v){ const db=await idb(); return new Promise((res,rej)=>{ const t=db.transaction('keys','readwrite'); t.objectStore('keys').put(v,k); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); }); }
+async function idbDel(k){ try { const db=await idb(); await new Promise(res=>{ const t=db.transaction('keys','readwrite'); t.objectStore('keys').delete(k); t.oncomplete=res; t.onerror=res; }); } catch(e){} }
+async function deviceKeyGet(create){
+  try { const k=await idbGet('dev'); if (k) return k; } catch(e){}
+  if (!create) return null;
+  const k = await crypto.subtle.generateKey({name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+  try { await idbSet('dev',k); } catch(e){ return null; }
+  return k;
+}
+
+/* ---- Passkey (Face ID / Fingerabdruck) ---- */
+const passkeyAvailable = async () => { try { return !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); } catch(e){ return false; } };
+async function passkeyCreate(prfSalt){
+  const cred = await navigator.credentials.create({publicKey:{
+    rp:{name:'Vermietung', id:location.hostname},
+    user:{id:rnd(16), name:'Vermietung', displayName:'Vermietung'},
+    challenge:rnd(32),
+    pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+    authenticatorSelection:{residentKey:'required', requireResidentKey:true, userVerification:'required', authenticatorAttachment:'platform'},
+    extensions:{prf:{eval:{first:prfSalt}}},
+    timeout:120000
+  }});
+  const ext = cred.getClientExtensionResults ? cred.getClientExtensionResults() : {};
+  return {id:b64(cred.rawId), prfEnabled: !!(ext.prf && ext.prf.enabled), prfFirst: ext.prf && ext.prf.results && ext.prf.results.first ? new Uint8Array(ext.prf.results.first) : null};
+}
+async function passkeyGet(credB64, prfSalt){
+  const opts = {challenge:rnd(32), userVerification:'required', timeout:120000, rpId:location.hostname};
+  if (credB64) opts.allowCredentials=[{type:'public-key', id:ub64(credB64)}];
+  if (prfSalt) opts.extensions={prf:{eval:{first:prfSalt}}};
+  const a = await navigator.credentials.get({publicKey:opts});
+  const ext = a.getClientExtensionResults ? a.getClientExtensionResults() : {};
+  return {id:b64(a.rawId), prfFirst: ext.prf && ext.prf.results && ext.prf.results.first ? new Uint8Array(ext.prf.results.first) : null};
+}
+
+/* ---- Tresor lesen/schreiben ---- */
+async function sealV3(data){
+  const iv=rnd(12);
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv}, KEY, te.encode(JSON.stringify(data)));
+  return {v:3, app:'vermietung', iv:b64(iv), ct:b64(ct), locks:LOCKS, updated:Date.now()};
+}
+async function openV3(raw, v){ const k=await aesKey(raw); const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(v.iv)}, k, ub64(v.ct)); return {k, data:JSON.parse(td.decode(pt))}; }
+function writeV3(v){ CUR_VAULT = JSON.stringify(v); localStorage.setItem(WEB_KEY, CUR_VAULT); }
+function saveNow(){
+  clearTimeout(saveTimer); saveTimer=null;
+  if (!KEY||!S) return saving;
+  const data=JSON.parse(JSON.stringify(S));
+  saving = saving.then(async()=>{
+    try { writeV3(await sealV3(data)); setStatus(false,'Verschlüsselt gespeichert'); }
+    catch(err){ setStatus(true,'Speichern fehlgeschlagen. Bitte Sicherung speichern'); }
+  });
+  return saving;
+}
+
+/* ---- Teilen / Speichern in Dateien ---- */
+function downloadBlob(blob,name){ try{ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1500); }catch(e){} }
+function shareOrDownload(blob,name){
+  try {
+    const file = new File([blob], name, {type: blob.type || 'application/octet-stream'});
+    if (navigator.canShare && navigator.canShare({files:[file]})) return navigator.share({files:[file], title:name}).then(()=>true, e=> e && e.name==='AbortError' ? false : (downloadBlob(blob,name), true));
+  } catch(e){}
+  downloadBlob(blob,name); return Promise.resolve(true);
+}
+// Exporte im Steuer-Bereich
+function stbPdf(){
+  let s; try { s=buildPdf(); } catch(err){ UI.copyMsg='PDF konnte nicht erstellt werden.'; render(); return; }
+  const name=`Mieteinnahmen-${S.steuerJahr}.pdf`;
+  shareOrDownload(new Blob([Uint8Array.from(s,c=>c.charCodeAt(0))],{type:'application/pdf'}), name);
+  UI.copyMsg='PDF erstellt. Wähle im Teilen-Menü „In Dateien sichern“, Mail oder eine andere App.'; render();
+}
+function stbCsv(){
+  const cell=v=>typeof v==='number'?String(Math.round(v*100)/100).replace('.',','):`"${String(v??'').replace(/"/g,'""')}"`;
+  const csv='﻿'+stbRows().map(r=>r.map(cell).join(';')).join('\r\n');
+  shareOrDownload(new Blob([csv],{type:'text/csv;charset=utf-8'}), `Vermietung-Steuer-${S.steuerJahr}.csv`);
+  UI.copyMsg='CSV erstellt. Wähle im Teilen-Menü „In Dateien sichern“ oder eine andere App.'; render();
+}
+
+/* ---- Bildschirme vor dem Öffnen ---- */
+const LK = { set(msg, html, err=''){ $('#app').hidden=true; $('#lock').hidden=false; $('#lockMsg').innerHTML=msg; $('#lkBody').innerHTML=html||''; $('#lkErr').textContent=err; } };
+const lkBtn = (id,label,cls='primary') => `<button id="${id}" class="btn ${cls}" type="button">${label}</button>`;
+const lkLink = (id,label,style='') => `<button id="${id}" class="link" type="button" style="${style}">${label}</button>`;
+function on(id,fn){ const el=document.getElementById(id); if (el) el.addEventListener('click',fn); }
+
+function showWelcome(note){
+  LK.set(note ? esc(note) : 'Deine Vermietung, verschlüsselt auf diesem Gerät. Du entsperrst mit Face ID, und ein Wiederherstellungscode sichert dich ab.',
+    lkBtn('wlStart','Einrichten')+lkLink('wlRestore','Sicherung wiederherstellen')+'<input id="wlFile" type="file" accept=".json,application/json,text/plain" hidden>');
+  on('wlStart', setupStart);
+  on('wlRestore', ()=>$('#wlFile').click());
+  $('#wlFile').addEventListener('change', e=>readBackupFile(e.target.files[0]));
+}
+
+/* Einrichtung: 1) Code zeigen, 2) Code bestätigen, 3) Face ID */
+let SETUP=null;
+async function setupStart(){
+  DEKRAW = rnd(32);
+  const code=newRecoveryCode(), salt=b64(rnd(16)), iter=150000;
+  LOCKS = {rec:{salt, iter, ...(await wrapWith(await kekFromCode(code,salt,iter), DEKRAW))}};
+  SETUP = {code};
+  LK.set('<b>Dein Wiederherstellungscode.</b> Schreib ihn auf oder speichere ihn in einer gesperrten Notiz. Ohne Face ID kommst du nur damit an deine Daten.',
+    `<div class="rcode" id="rcode">${fmtCode(code)}</div>
+     ${lkBtn('rcCopy','Code kopieren','')}
+     <label class="sr" for="rcCheck">Letzte 4 Zeichen</label>
+     <input id="rcCheck" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" maxlength="4" placeholder="Zur Kontrolle: die letzten 4 Zeichen">
+     ${lkBtn('rcNext','Weiter')}`);
+  on('rcCopy', ()=>{ navigator.clipboard && navigator.clipboard.writeText(fmtCode(code)).then(()=>{ $('#rcCopy').textContent='Kopiert'; },()=>{}); });
+  on('rcNext', ()=>{
+    if (normCode($('#rcCheck').value)!==code.slice(-4)){ $('#lkErr').textContent='Die letzten 4 Zeichen stimmen nicht. Schau noch einmal auf den Code.'; return; }
+    setupFaceId();
+  });
+}
+async function setupFaceId(){
+  const avail = await passkeyAvailable();
+  if (!avail){ return setupFinish('none'); }
+  LK.set('<b>Face ID einrichten.</b> Damit öffnest du die App künftig mit einem Blick. Dein iPhone legt dafür einen Passkey an, der im iCloud-Schlüsselbund gesichert wird.',
+    lkBtn('fiGo','Face ID einrichten')+lkLink('fiSkip','Ohne Face ID weiter'));
+  on('fiGo', faceIdCreate);
+  on('fiSkip', ()=>setupFinish('none'));
+}
+async function faceIdCreate(){
+  $('#lkErr').textContent='';
+  const prfSalt = rnd(32);
+  let c;
+  try { c = await passkeyCreate(prfSalt); }
+  catch(e){ $('#lkErr').textContent='Face ID wurde nicht eingerichtet ('+(e&&e.name||'Fehler')+'). Du kannst es nochmal versuchen oder ohne Face ID weitermachen.'; return; }
+  if (c.prfFirst) return addPrfLock(c.id, prfSalt, c.prfFirst);
+  LK.set('<b>Fast fertig.</b> Bestätige Face ID noch einmal, damit dein Schlüssel daraus erzeugt werden kann.',
+    lkBtn('fiConfirm','Face ID bestätigen')+lkLink('fiSkip2','Überspringen'));
+  on('fiConfirm', async ()=>{
+    $('#lkErr').textContent='';
+    try {
+      const g = await passkeyGet(c.id, prfSalt);
+      if (g.prfFirst) return addPrfLock(c.id, prfSalt, g.prfFirst);
+      return addGateLock(c.id);
+    } catch(e){ $('#lkErr').textContent='Das hat nicht geklappt ('+(e&&e.name||'Fehler')+'). Versuch es nochmal.'; }
+  });
+  on('fiSkip2', ()=>addGateLock(c.id));
+}
+async function addPrfLock(credId, prfSalt, prfOut){
+  LOCKS.prf = {cred:credId, salt:b64(prfSalt), ...(await wrapWith(await kekFromPrf(prfOut), DEKRAW))};
+  delete LOCKS.gate; delete LOCKS.dev;
+  return SETUP ? setupFinish('prf') : afterLockChange('Face ID ist eingerichtet.');
+}
+async function addGateLock(credId){
+  const dk = await deviceKeyGet(true);
+  if (!dk){ return SETUP ? setupFinish('none') : afterLockChange('Face ID ließ sich auf diesem Gerät nicht einrichten.'); }
+  LOCKS.gate = {cred:credId}; LOCKS.dev = await wrapWith(dk, DEKRAW);
+  return SETUP ? setupFinish('gate') : afterLockChange('Face ID ist als Sperre eingerichtet.');
+}
+async function setupFinish(kind){
+  if (kind==='none'){ const dk=await deviceKeyGet(true); if (dk){ LOCKS.dev = await wrapWith(dk, DEKRAW); } }
+  KEY = await aesKey(DEKRAW);
+  S = normalize(defaults()); S.beispiel = true; S.settings.lastBackup = 0;
+  SETUP = null;
+  await saveNow(); openApp();
+  UI.notice = kind==='prf' ? 'Fertig. Ab jetzt öffnest du die App mit Face ID. Importiere jetzt deine Daten unter Daten (oben rechts).'
+    : kind==='gate' ? 'Fertig. Face ID schützt die App. Importiere jetzt deine Daten unter Daten (oben rechts).'
+    : 'Fertig. Die App öffnet sich auf diesem Gerät direkt. Importiere jetzt deine Daten unter Daten (oben rechts).';
+  render();
+}
+async function afterLockChange(msg){ UI.fid=null; await saveNow(); UI.notice=msg; render(); }
+
+/* Entsperren */
+function showUnlock(v, why){
+  const hasFace = !!(v.locks && (v.locks.prf || v.locks.gate));
+  LK.set(why || (hasFace ? 'Entsperre mit Face ID.' : 'Gib deinen Wiederherstellungscode ein.'),
+    (hasFace ? lkBtn('ulFace','Mit Face ID entsperren') : '') +
+    `<div id="ulCodeBox" ${hasFace?'hidden':''} class="lkcol"><label class="sr" for="ulCode">Wiederherstellungscode</label><input id="ulCode" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX">${lkBtn('ulCodeGo','Mit Code öffnen')}</div>` +
+    (hasFace ? lkLink('ulCodeShow','Mit Wiederherstellungscode öffnen') : '') +
+    (PENDING ? lkLink('ulCancel','Abbrechen') : ''));
+  on('ulFace', ()=>unlockFace(v));
+  on('ulCodeShow', ()=>{ $('#ulCodeBox').hidden=false; $('#ulCodeShow').hidden=true; $('#ulCode').focus(); });
+  on('ulCodeGo', ()=>unlockCode(v));
+  on('ulCancel', ()=>{ PENDING=null; boot(); });
+  const ci=$('#ulCode'); if (ci) ci.addEventListener('keydown',e=>{ if(e.key==='Enter') unlockCode(v); });
+}
+async function finishUnlock(v, raw, data, note){
+  DEKRAW = raw; LOCKS = v.locks || {}; KEY = await aesKey(DEKRAW);
+  try { S = normalize(data); } catch(e){ S = data; }
+  if (LOCKS.gate || (!LOCKS.prf && !LOCKS.gate)){ const dk=await deviceKeyGet(true); if (dk) LOCKS.dev = await wrapWith(dk, DEKRAW); }
+  const wasPending = !!PENDING; PENDING=null;
+  await saveNow(); openApp();
+  if (note || wasPending){ UI.notice = note || 'Sicherung wiederhergestellt.'; render(); }
+}
+async function unlockFace(v){
+  $('#lkErr').textContent='';
+  try {
+    if (v.locks.prf){
+      const g = await passkeyGet(v.locks.prf.cred, ub64(v.locks.prf.salt));
+      if (!g.prfFirst) throw new Error('noprf');
+      const raw = await unwrapWith(await kekFromPrf(g.prfFirst), v.locks.prf);
+      const {data} = await openV3(raw, v); return finishUnlock(v, raw, data);
+    }
+    if (v.locks.gate){
+      await passkeyGet(v.locks.gate.cred, null);
+      const dk = await deviceKeyGet(false);
+      if (!dk || !v.locks.dev) throw new Error('nodev');
+      const raw = await unwrapWith(dk, v.locks.dev);
+      const {data} = await openV3(raw, v); return finishUnlock(v, raw, data);
+    }
+  } catch(e){
+    const n = e && (e.name||e.message);
+    $('#lkErr').textContent = n==='NotAllowedError' ? 'Face ID wurde abgebrochen. Tipp nochmal auf den Knopf.'
+      : 'Face ID hat hier nicht geklappt. Öffne die App mit deinem Wiederherstellungscode.';
+    $('#ulCodeBox').hidden=false; const s=$('#ulCodeShow'); if (s) s.hidden=true;
+  }
+}
+let codeFails=0;
+async function unlockCode(v){
+  $('#lkErr').textContent='';
+  const code=normCode($('#ulCode').value);
+  if (code.length!==24){ $('#lkErr').textContent='Der Code hat 24 Zeichen (ohne Bindestriche).'; return; }
+  if (codeFails>2) await sleep(Math.min(20000, 1000*2**(codeFails-3)));
+  try {
+    const r=v.locks.rec; const raw=await unwrapWith(await kekFromCode(code, r.salt, r.iter||150000), r);
+    const {data}=await openV3(raw, v); codeFails=0; return finishUnlock(v, raw, data);
+  } catch(e){ codeFails++; $('#lkErr').textContent='Der Code passt nicht zu diesen Daten.'; }
+}
+async function unlockDevice(v){
+  try {
+    const dk=await deviceKeyGet(false); if (!dk || !v.locks.dev) throw 0;
+    const raw=await unwrapWith(dk, v.locks.dev); const {data}=await openV3(raw, v); return finishUnlock(v, raw, data);
+  } catch(e){ showUnlock(v, 'Gib deinen Wiederherstellungscode ein, um die Daten auf diesem Gerät zu öffnen.'); }
+}
+
+/* Sicherung als Datei */
+async function readBackupFile(f){
+  if (!f) return;
+  $('#lkErr').textContent='';
+  try {
+    const txt=(await f.text()).trim(); const v=JSON.parse(txt);
+    if (!v || v.v!==3 || v.app!=='vermietung' || !v.locks || !v.locks.rec) throw 0;
+    PENDING=v; showUnlock(v, 'Sicherung gefunden. Öffne sie mit Face ID oder dem Wiederherstellungscode, der zu dieser Sicherung gehört.');
+  } catch(e){ $('#lkErr').textContent='Diese Datei ist keine Sicherung dieser App. Deine Excel-Daten (.json) importierst du nach dem Einrichten unter Daten.'; }
+}
+function saveSicherung(){
+  if (!CUR_VAULT){ UI.notice='Es gibt noch nichts zu sichern.'; render(); return; }
+  const name=`Vermietung-Sicherung-${todayISO()}.json`;
+  shareOrDownload(new Blob([CUR_VAULT],{type:'application/json'}), name).then(ok=>{
+    if (!ok) return;
+    S.settings.lastBackup=Date.now(); scheduleSave();
+    UI.notice='Sicherung erstellt. Bewahre die Datei in der Dateien-App auf, am besten in iCloud Drive.'; render();
+  });
+}
+const makeBackup = saveSicherung, saveBackupFile = saveSicherung;
+function copyBackup(){}
+function backupBanner(){
+  const lb=num(S.settings.lastBackup||0), days=lb?Math.floor((Date.now()-lb)/86400000):null;
+  if (lb && days<7) return '';
+  return `<div class="note warn" style="margin:0 0 12px"><span>${lb ? `Deine letzte Sicherung ist ${days} Tage alt. Sichere deine Daten in der Dateien-App.` : 'Du hast noch keine Sicherung in Dateien. Ohne Sicherung sind die Daten weg, wenn das Gerät verloren geht.'}</span><button class="btn small" type="button" data-act="backupFile">Jetzt sichern</button></div>`;
+}
+
+/* Import (Excel-Datendatei, alte Scriptable-Backups) */
+$('#view').addEventListener('change', async e=>{
+  if (e.target.id==='impFile'){ const f=e.target.files[0]; if(f) $('#impText').value=(await f.text()).trim(); }
+  if (e.target.id==='restoreIn'){ const f=e.target.files[0]; if(f) inAppRestore(f); }
+});
+async function inAppRestore(f){
+  try {
+    const v=JSON.parse((await f.text()).trim());
+    if (!v || v.v!==3 || v.app!=='vermietung') throw new Error('Das ist keine Sicherung dieser App.');
+    try { const {data}=await openV3(DEKRAW, v); S=normalize(data); await saveNow(); UI.notice='Sicherung wiederhergestellt.'; render(); return; } catch(x){}
+    throw new Error('Diese Sicherung gehört zu einer anderen Einrichtung. Lösche unter „Alle Daten löschen“ die aktuellen Daten und stell sie beim Einrichten über „Sicherung wiederherstellen“ mit ihrem Code her.');
+  } catch(e){ UI.importErr=e.message||'Wiederherstellen fehlgeschlagen.'; render(); }
+}
+async function doImport(){
+  UI.importErr=UI.importMsg='';
+  const txt=($('#impText').value||'').trim(), pw=$('#impPw')?$('#impPw').value:'';
+  try{
+    if (!txt) throw new Error('Wähle zuerst eine Datei oder füge den Text ein.');
+    if (!txt.startsWith(PREFIX)){ let o=null; try{ o=JSON.parse(txt); }catch(x){} if (o && o.v===3) throw new Error('Das ist eine Sicherung. Nutze dafür „Sicherung öffnen“ weiter oben.'); }
+    const data=await decodeImport(txt,pw);
+    const plain=!txt.startsWith(PREFIX) && !/"ct"\s*:/.test(txt);
+    const keep=S.settings.lastBackup;
+    S=normalize(data); S.beispiel=false; S.settings.lastBackup=keep||0; await saveNow();
+    UI.importMsg = plain ? 'Importiert und verschlüsselt gespeichert. Lösche die unverschlüsselte Importdatei jetzt von deinem Gerät.' : 'Backup importiert.';
+  } catch(x){ UI.importErr=x.message||'Import fehlgeschlagen.'; }
+  render();
+}
+// Backup (VMB1), alte verschlüsselte Datei (vault.json) oder unverschlüsselte Datendatei
+async function decodeImport(txt,pw){
+  if (!txt) throw new Error('Füge zuerst ein Backup oder eine Datendatei ein.');
+  let v=null;
+  if (txt.startsWith(PREFIX)) v=JSON.parse(td.decode(ub64(txt.slice(PREFIX.length))));
+  else {
+    let o; try{ o=JSON.parse(txt); } catch(x){ throw new Error('Der Text ist weder ein Backup noch gültiges JSON.'); }
+    if (o && o.ct && o.salt) v=o;
+    else { if (!o || !Array.isArray(o.objekte)) throw new Error('Die Datei enthält keine Vermietungs-Daten.'); return o; }
+  }
+  const key=await deriveKey(pw,ub64(v.salt),v.iter||ITER);
+  try{ return await unseal(key,v); } catch(x){ throw new Error('Das Passwort passt nicht zu diesem Backup.'); }
+}
+async function wipe(){
+  if (($('#wipeIn').value||'').trim().toUpperCase()!=='LÖSCHEN'){ $('#wipeIn').focus(); return; }
+  clearTimeout(saveTimer); saveTimer=null; await saving;
+  try { localStorage.removeItem(WEB_KEY); } catch(e){}
+  await idbDel('dev');
+  KEY=null; S=null; DEKRAW=null; LOCKS=null; CUR_VAULT=null; UI.tab='uebersicht'; UI.obj=UI.unit=null; UI.stack=[];
+  showWelcome('Alle Daten wurden von diesem Gerät gelöscht.');
+}
+
+/* Einstellungen: Face ID nachträglich, neuer Code */
+const WEBACT = {
+  setupFaceId(){ faceIdInApp(); },
+  newRecovery(){ newRecoveryInApp(); },
+  recDone(){ UI.newCode=null; render(); },
+  restoreOpen(){ const i=$('#restoreIn'); if (i) i.click(); },
+  async fidConfirm(){
+    const f=UI.fid; if(!f) return;
+    try { const g=await passkeyGet(f.id, f.salt); UI.fid=null; if (g.prfFirst) return addPrfLock(f.id, f.salt, g.prfFirst); return addGateLock(f.id); }
+    catch(e){ UI.fidErr='Das hat nicht geklappt ('+(e&&e.name||'Fehler')+').'; render(); }
+  },
+};
+async function faceIdInApp(){
+  UI.fidErr='';
+  const prfSalt=rnd(32);
+  try {
+    const c = await passkeyCreate(prfSalt);
+    if (c.prfFirst) return addPrfLock(c.id, prfSalt, c.prfFirst);
+    UI.fid = {id:c.id, salt:prfSalt}; render();
+  } catch(e){ UI.fidErr='Face ID wurde nicht eingerichtet ('+(e&&e.name||'Fehler')+').'; render(); }
+}
+async function newRecoveryInApp(){
+  const code=newRecoveryCode(), salt=b64(rnd(16)), iter=150000;
+  LOCKS.rec = {salt, iter, ...(await wrapWith(await kekFromCode(code,salt,iter), DEKRAW))};
+  await saveNow(); UI.newCode=code; render();
+}
+
+/* Öffnen der App */
+function openApp(){
+  $('#lock').hidden=true; $('#app').hidden=false;
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch(e){}
+  if (UI.unit && findUnit(UI.unit)[0]<0) { UI.unit=null; UI.stack=[]; }
+  if (UI.obj && findObj(UI.obj)<0) { UI.obj=null; UI.stack=[]; }
+  render();
+}
+
+/* Sperren, wenn die App länger im Hintergrund war (nur mit Face ID) */
+document.addEventListener('visibilitychange',()=>{
+  if (document.hidden){ hiddenAt=Date.now(); if (saveTimer) saveNow(); return; }
+  if (S && LOCKS && (LOCKS.prf||LOCKS.gate) && hiddenAt && Date.now()-hiddenAt>60000){
+    const v = CUR_VAULT ? JSON.parse(CUR_VAULT) : null;
+    KEY=null; S=null; DEKRAW=null;
+    if (v) showUnlock(v,'Gesperrt. Entsperre mit Face ID.');
+  }
+});
+window.addEventListener('pagehide',()=>{ if (saveTimer) saveNow(); });
+
+/* ================= Start ================= */
+$('#view').addEventListener('input',onInput);
+$('#view').addEventListener('change',e=>{ if (e.target.dataset.p) onInput(e); });
+document.addEventListener('click',e=>{ if ($('#app').hidden) return; onClick(e); });
+$('#backBtn').addEventListener('click',back);
+$('#verInfo').textContent='Version '+WEBVER;
+
+async function boot(){
+  if (!window.crypto || !crypto.subtle){ LK.set('Dieser Browser bietet keine sichere Verschlüsselung an. Öffne die App in Safari oder Chrome über ihre https-Adresse.'); return; }
+  try { localStorage.setItem('vm.t','1'); localStorage.removeItem('vm.t'); } catch(e){ LK.set('Speichern ist in diesem Modus nicht möglich (z. B. privates Surfen). Öffne die App in einem normalen Fenster.'); return; }
+  let v=null; try { const s=localStorage.getItem(WEB_KEY); v=s?JSON.parse(s):null; } catch(e){}
+  if (!v) return showWelcome();
+  CUR_VAULT = JSON.stringify(v);
+  if (v.locks && (v.locks.prf || v.locks.gate)) return showUnlock(v);
+  return unlockDevice(v);
+}
+boot();
+if ('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+window.__vmReady=true;
+})();
+
+</script>
+
+</body>
+</html>
