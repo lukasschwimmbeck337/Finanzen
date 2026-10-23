@@ -1,0 +1,1851 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Finanzen">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ECEFF2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F151B" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px)} body{margin:0}</style>
+<title>Finanzplanung</title>
+<style>
+/* Konzept: Farben der Euro-Scheine kodieren die Bereiche (20 € blau = Fixkosten, 50 € orange = Freizeit,
+   10 € rot = Sonstiges, 100 € grün = Sparen, 200 € ocker). Eine Spalte, linksbündig, Listen zum Lesen,
+   Bearbeiten auf eigener Seite. Zahlen in SF Pro Rounded. */
+:root{
+  --bg:#ECEFF2; --surface:#FFFFFF; --surface2:#F5F7F9; --ink:#14202B; --muted:#5D6B78; --faint:#8A97A3; --line:#E1E6EB;
+  --green:#22845F; --blue:#3567B0; --orange:#D9712C; --red:#C3414E; --ochre:#B48A1E; --grey:#7B8794; --violet:#6B5FB5;
+  --accent:var(--green); --accent-ink:#FFFFFF;
+  --pos:#1D7F52; --neg:#C3414E; --warn:#A86A00;
+  --glass:rgba(255,255,255,.78); --glass-line:rgba(20,32,43,.08);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --round:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F151B; --surface:#18212A; --surface2:#1F2A34; --ink:#EAF0F4; --muted:#97A5B2; --faint:#6E7D8A; --line:#26323D;
+  --green:#4CC08F; --blue:#6E9BE6; --orange:#F09A57; --red:#EE7380; --ochre:#DDB54A; --grey:#9AA6B2; --violet:#A59AF0;
+  --accent-ink:#062618; --pos:#5CCB93; --neg:#F07D89; --warn:#E8B04A;
+  --glass:rgba(24,33,42,.78); --glass-line:rgba(255,255,255,.08); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F151B; --surface:#18212A; --surface2:#1F2A34; --ink:#EAF0F4; --muted:#97A5B2; --faint:#6E7D8A; --line:#26323D;
+  --green:#4CC08F; --blue:#6E9BE6; --orange:#F09A57; --red:#EE7380; --ochre:#DDB54A; --grey:#9AA6B2; --violet:#A59AF0;
+  --accent-ink:#062618; --pos:#5CCB93; --neg:#F07D89; --warn:#E8B04A;
+  --glass:rgba(24,33,42,.78); --glass-line:rgba(255,255,255,.08); color-scheme:dark}
+
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.4 var(--font);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num,[data-k]{font-variant-numeric:tabular-nums}
+.neg{color:var(--neg)!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Sperrbildschirm ---------- */
+.lock{min-height:100%;display:grid;place-items:center;padding-block:40px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));
+  background:radial-gradient(120% 60% at 50% 0%,color-mix(in srgb,var(--green) 22%,transparent),transparent 70%),var(--bg)}
+.lock-inner{width:100%;max-width:340px;display:flex;flex-direction:column;gap:14px}
+.appicon{width:76px;height:76px;border-radius:22px;background:linear-gradient(160deg,#2C9A6F,#16664A);display:grid;place-items:center;color:#fff;box-shadow:0 10px 30px -10px rgba(22,102,74,.55)}
+.lock h1{font:700 32px/1.1 var(--round);letter-spacing:-.02em;margin:10px 0 0}
+#lockMsg{margin:0;color:var(--muted);text-wrap:pretty}
+.lock form,.restore{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.lock input[type=password],.lock input#pw1,.lock textarea{font:inherit;font-size:17px;padding:15px 16px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);width:100%}
+.lock input:focus,.lock textarea:focus{outline:none;border-color:var(--accent)}
+.lock textarea{font-size:13px;font-family:ui-monospace,Menlo,monospace;min-height:90px;resize:vertical}
+.pwwrap{position:relative}.pwwrap input{padding-right:52px!important}
+.eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:42px;height:42px;border:0;background:none;color:var(--muted);border-radius:10px;cursor:pointer;display:grid;place-items:center}
+.eye[aria-pressed="true"]{color:var(--accent)}
+.lkbody,.lkcol{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.lock input[type=text]{font:inherit;font-size:17px;padding:15px 16px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);width:100%}
+.lock input[type=text]:focus{outline:none;border-color:var(--accent)}
+#ulCode{font-family:ui-monospace,Menlo,monospace;letter-spacing:.04em;text-transform:uppercase}
+.rcode{font:600 19px/1.5 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-align:center;background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:16px 10px;user-select:all;-webkit-user-select:all;word-break:break-all;color:var(--ink)}
+.lock #lockMsg b{color:var(--ink)}
+.pinbox{display:flex;flex-direction:column;align-items:center;gap:22px;margin-top:6px}
+.pdots{display:flex;gap:18px;height:18px}
+.pdots i{width:15px;height:15px;border-radius:50%;border:2px solid var(--ink);display:block;transition:background .12s}
+.pdots i.on{background:var(--ink)}
+.pdots.shake{animation:shake .35s}
+@keyframes shake{20%{transform:translateX(-10px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+.pad{display:grid;grid-template-columns:repeat(3,76px);gap:14px 24px;justify-content:center}
+.pad button{width:76px;height:76px;border-radius:50%;border:0;background:var(--surface);color:var(--ink);font:500 30px var(--round);cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.pad button:active{background:var(--line)}
+.pad button.fn{background:none;box-shadow:none;font:500 16px var(--font);color:var(--accent)}
+.pad button:disabled{opacity:.35}
+.pinmsg{min-height:1.3em;text-align:center;font-size:14.5px;color:var(--muted);margin:0}
+.pinmsg.bad{color:var(--neg)}
+.err{color:var(--neg);min-height:1.2em;margin:0;font-size:14px}
+.fine{font-size:12.5px;color:var(--muted);margin:6px 0 0;text-wrap:pretty}
+.link{background:none;border:0;color:var(--accent);font-weight:600;padding:8px 0;cursor:pointer;text-align:left}
+
+/* ---------- Buttons & Chips ---------- */
+.btn{border:0;border-radius:14px;padding:14px 18px;font-weight:600;cursor:pointer;background:var(--surface2);color:var(--ink);text-align:center}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.danger{background:color-mix(in srgb,var(--neg) 12%,transparent);color:var(--neg)}
+.btn.ghost{background:none;color:var(--accent);padding:10px 4px}
+.btn.small{padding:9px 14px;font-size:14px;border-radius:999px}
+.btn.wide{width:100%}
+.btn[disabled]{opacity:.5}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 14px;font-size:15px;font-weight:500;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tag{display:inline-block;font:600 13px/1 var(--round);border-radius:999px;padding:5px 9px;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);white-space:nowrap}
+.tag.neg{background:color-mix(in srgb,var(--neg) 13%,transparent)}
+.tag.plain{background:var(--surface2);color:var(--muted)}
+.tag.warn{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}
+.rule{display:flex;gap:13px;padding:13px 16px;align-items:flex-start;width:100%;border:0;background:none;text-align:left;position:relative}
+button.rule{cursor:pointer}button.rule:active{background:var(--surface2)}
+.rule+.rule::before{content:"";position:absolute;top:0;left:66px;right:0;height:1px;background:var(--line)}
+.rule .t{flex:1;min-width:0}
+.rule .t b{display:block;font-weight:600}
+.rule .t small{display:block;color:var(--muted);font-size:13.5px;margin-top:2px;text-wrap:pretty}
+.rule .you{display:block;font:600 14px var(--round);margin-top:5px;color:var(--ink)}
+.rule .tag{flex:none;margin-top:2px}
+
+/* ---------- Gerüst ---------- */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);background:color-mix(in srgb,var(--bg) 85%,transparent);-webkit-backdrop-filter:saturate(1.5) blur(16px);backdrop-filter:saturate(1.5) blur(16px)}
+.topbar-in{max-width:640px;margin:0 auto;display:flex;align-items:center;gap:6px;min-height:48px;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+.topbar .spacer{flex:1}
+.navbtn{display:inline-flex;align-items:center;gap:3px;border:0;background:none;color:var(--accent);font-weight:600;padding:10px 8px;cursor:pointer;font-size:17px}
+.navbtn.done{font-weight:700}
+.iconbtn{width:40px;height:40px;border-radius:50%;border:0;background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer}
+.status{font-size:12.5px;color:var(--faint);display:flex;align-items:center;gap:6px;padding-left:8px}
+.status i{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block}
+.status.busy i{background:var(--warn)}
+main{max-width:640px;margin:0 auto;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px));padding-block:0 calc(120px + env(safe-area-inset-bottom,0px))}
+.page{display:flex;flex-direction:column;gap:14px}
+@media (prefers-reduced-motion:no-preference){
+  .page.push{animation:push .26s cubic-bezier(.2,.8,.2,1)}
+  @keyframes push{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+  .page.pop{animation:pop .22s ease}
+  @keyframes pop{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+  .ribbon.grow>span{animation:grow .7s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes grow{from{transform:scaleX(0)}to{transform:none}}
+}
+.ph{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:2px}
+.ph h1{font:700 34px/1.08 var(--round);letter-spacing:-.025em;margin:0;text-wrap:balance}
+.ph .sub{color:var(--muted);font-size:15px;margin-top:4px}
+.ph .sub button{border:0;background:none;color:var(--muted);padding:0;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+
+/* Satz-Held */
+.lede{font:600 25px/1.3 var(--round);letter-spacing:-.015em;margin:4px 0 0;text-wrap:pretty}
+.lede b{font-weight:700;white-space:nowrap}
+.lede .c-fix{color:var(--blue)} .lede .c-free{color:var(--orange)} .lede .c-save{color:var(--green)} .lede .c-misc{color:var(--red)}
+.lede-sm{font:500 15px/1.45 var(--font);color:var(--muted);margin:0;text-wrap:pretty}
+
+/* Geldband */
+.ribbon{display:flex;gap:3px;height:22px;border-radius:8px;overflow:hidden;background:var(--line)}
+.ribbon>span{height:100%;transform-origin:left center}
+.ribbon>span:first-child{border-radius:8px 0 0 8px}.ribbon>span:last-child{border-radius:0 8px 8px 0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;color:var(--muted)}
+.legend b{color:var(--ink);font:600 14px var(--round)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:0}
+
+/* Abschnitte */
+.sh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:14px 2px -4px}
+.sh h2{font:650 19px/1.2 var(--round);margin:0;letter-spacing:-.01em}
+.sh .r{font:600 15px var(--round);color:var(--muted);white-space:nowrap}
+.sh .r small{font:400 13px var(--font)}
+.note-txt{font-size:13.5px;color:var(--muted);margin:0 2px;text-wrap:pretty}
+
+/* Liste */
+.list{background:var(--surface);border-radius:20px;overflow:hidden}
+.li{display:flex;align-items:center;gap:13px;padding:12px 16px;min-height:62px;position:relative;width:100%;border:0;background:none;text-align:left;cursor:pointer}
+.li+.li::before{content:"";position:absolute;top:0;left:66px;right:0;height:1px;background:var(--line)}
+.li.noicon+.li::before,.li.noicon::before{left:16px}
+.li:active{background:var(--surface2)}
+.li.static{cursor:default}.li.static:active{background:none}
+.ic{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:var(--c,var(--accent));background:color-mix(in srgb,var(--c,var(--accent)) 14%,transparent)}
+.ic svg{width:21px;height:21px}
+.ic.letter{font:700 16px var(--round)}
+.li .t{flex:1;min-width:0}
+.li .t b{display:block;font-weight:600;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li .t small{display:block;color:var(--muted);font-size:13.5px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li .v{text-align:right;white-space:nowrap;font:600 16px var(--round);font-variant-numeric:tabular-nums}
+.li .v small{display:block;font:400 12.5px var(--font);color:var(--muted);margin-top:1px}
+.li .chev{flex:none;color:var(--faint);margin-left:-4px}
+.li.add{color:var(--accent);font-weight:600;min-height:54px}
+.li.add .ic{background:none;width:38px}
+.li.total .t b,.li.total .v{font-weight:700}
+.minibar{display:block;height:4px;border-radius:2px;background:var(--line);margin-top:7px;overflow:hidden}
+.minibar>i{display:block;height:100%;border-radius:2px;background:var(--c,var(--accent))}
+.empty{padding:18px 16px;color:var(--muted);font-size:14.5px}
+
+/* Kacheln */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--surface);border-radius:20px;padding:14px 15px;display:flex;flex-direction:column;gap:6px;min-width:0;border:0;text-align:left;cursor:default}
+button.tile{cursor:pointer}
+button.tile:active{background:var(--surface2)}
+.tile .ic{width:34px;height:34px;border-radius:11px}
+.tile .ic svg{width:19px;height:19px}
+.tile .k{font-size:13.5px;color:var(--muted)}
+.tile .n{font:700 21px/1.15 var(--round);letter-spacing:-.01em;overflow-wrap:anywhere}
+.tile .n small{font:500 13px var(--font);color:var(--muted)}
+.tile.full{grid-column:1/-1;flex-direction:row;align-items:center;gap:13px}
+
+/* Hinweise */
+.alert{display:flex;gap:11px;align-items:flex-start;padding:13px 15px;border-radius:16px;font-size:14.5px;line-height:1.4;text-wrap:pretty;background:color-mix(in srgb,var(--warn) 13%,var(--surface));color:var(--ink)}
+.alert svg{flex:none;color:var(--warn);margin-top:1px}
+.alert.bad{background:color-mix(in srgb,var(--neg) 11%,var(--surface))}
+.alert.bad svg{color:var(--neg)}
+.alert.info{background:color-mix(in srgb,var(--accent) 12%,var(--surface))}
+.alert.info svg{color:var(--accent)}
+.alert .act{margin-left:auto;flex:none}
+
+/* Fluss (Sparen) */
+.flow .li{min-height:52px;padding-block:10px}.flow .li .t small{white-space:normal}
+.flow .bar{height:6px;border-radius:3px;background:var(--line);margin-top:6px;overflow:hidden}
+.flow .bar i{display:block;height:100%;background:var(--c,var(--accent));border-radius:3px}
+.flow .op{flex:none;width:38px;text-align:center;font:700 18px var(--round);color:var(--faint)}
+
+/* Regler */
+.ctl{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.ctl+.ctl{border-top:1px solid var(--line)}
+.ctl-h{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ctl-h b{font-weight:600}
+.ctl-h small{display:block;color:var(--muted);font-size:13px;font-weight:400}
+.pctin{display:flex;align-items:center;gap:2px;background:var(--surface2);border-radius:10px;padding:0 10px 0 4px}
+.pctin input{width:64px;border:0;background:none;color:var(--ink);font:600 17px var(--round);text-align:right;padding:8px 2px;font-variant-numeric:tabular-nums}
+.pctin input:focus{outline:none}
+.pctin span{color:var(--muted);font-weight:600}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:30px;background:transparent;margin:0;--p:50%;--c:var(--accent)}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(to right,var(--c) var(--p),var(--line) var(--p))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;margin-top:-10px;box-shadow:0 1px 4px rgba(0,0,0,.25),0 0 0 .5px rgba(0,0,0,.06)}
+input[type=range]::-moz-range-track{height:8px;border-radius:4px;background:linear-gradient(to right,var(--c) var(--p),var(--line) var(--p))}
+input[type=range]::-moz-range-thumb{width:28px;height:28px;border:0;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+input[type=range].split::-webkit-slider-runnable-track{background:linear-gradient(to right,var(--green) var(--p),var(--blue) var(--p))}
+input[type=range].split::-moz-range-track{background:linear-gradient(to right,var(--green) var(--p),var(--blue) var(--p))}
+.ends{display:flex;justify-content:space-between;font-size:13.5px;color:var(--muted)}
+.ends b{font:600 15px var(--round);color:var(--ink)}
+
+/* Bearbeiten-Seite */
+.ed-amount{display:flex;flex-direction:column;align-items:center;gap:2px;padding:18px 10px 8px}
+.ed-amount input{width:100%;border:0;background:none;color:var(--ink);font:700 46px/1.1 var(--round);letter-spacing:-.03em;text-align:center;font-variant-numeric:tabular-nums;padding:4px 0}
+.ed-amount input:focus{outline:none}
+.ed-amount .u{color:var(--muted);font-size:15px}
+.ed-amount .out{font:600 15px var(--round);color:var(--muted);margin-top:6px;text-align:center}
+.ed-name{width:100%;border:0;background:var(--surface);color:var(--ink);font:600 18px var(--font);padding:15px 16px;border-radius:16px}
+.ed-name:focus{outline:2px solid var(--accent)}
+.form{background:var(--surface);border-radius:20px;overflow:hidden}
+.fr{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;min-height:54px}
+.fr+.fr{border-top:1px solid var(--line)}
+.fr label,.fr .l{flex:1;min-width:0}
+.fr .l small,.fr label small{display:block;color:var(--muted);font-size:13px}
+.fr .val{font:600 16px var(--round);white-space:nowrap}
+.fld{position:relative;display:flex;align-items:center;background:var(--surface2);border-radius:10px;min-width:0}
+.fld input,.fld select{width:100%;border:0;background:none;color:var(--ink);font:600 17px var(--round);text-align:right;padding:9px 30px 9px 10px;font-variant-numeric:tabular-nums;-webkit-appearance:none;appearance:none;min-width:0}
+.fld select{text-align:left;font:500 16px var(--font);padding-right:28px}
+.fld input:focus,.fld select:focus{outline:none}
+.fld:focus-within{box-shadow:0 0 0 2px var(--accent)}
+.fld .u{position:absolute;right:10px;color:var(--muted);font-size:14px;pointer-events:none}
+.fld.txt input{text-align:left;font:500 16px var(--font);padding-right:10px}
+.fld.w1{width:132px}.fld.w2{width:170px}.fld.w3{width:100%}
+.lbl{font-size:13.5px;color:var(--muted);margin:2px 4px -6px}
+
+/* Donut */
+.donut{display:grid;grid-template-columns:136px 1fr;gap:18px;align-items:center}
+.donut svg{display:block}
+.donut .legend{flex-direction:column;flex-wrap:nowrap;gap:9px}
+.donut .lrow{display:flex;justify-content:space-between;gap:10px;font-size:14.5px}
+.card{background:var(--surface);border-radius:22px;padding:16px}
+
+/* Zielbalken */
+.target{display:block;position:relative;height:8px;border-radius:4px;background:var(--line);margin:4px 0 2px}
+.target>i{position:absolute;inset:0 auto 0 0;border-radius:4px;background:var(--c,var(--accent))}
+.target>b{position:absolute;top:-4px;bottom:-4px;width:3px;border-radius:2px;background:var(--ink)}
+
+/* Diagramm */
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{fill:var(--muted);font:500 10px var(--font)}
+.seg{display:inline-flex;background:var(--surface2);border-radius:11px;padding:3px}
+.seg button{border:0;background:none;padding:7px 13px;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:10px 12px;text-align:right;white-space:nowrap;border-top:1px solid var(--line)}
+th{font-size:12.5px;color:var(--muted);font-weight:600;border-top:0}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface)}
+tr.em td{font-weight:700}
+details.more>summary{list-style:none;cursor:pointer;color:var(--accent);font-weight:600;padding:6px 2px}
+details.more>summary::-webkit-details-marker{display:none}
+
+/* Tab-Leiste (schwebend) */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:8;padding:0 max(14px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));pointer-events:none}
+.tabbar-in{pointer-events:auto;max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);background:var(--glass);-webkit-backdrop-filter:saturate(1.8) blur(20px);backdrop-filter:saturate(1.8) blur(20px);border:1px solid var(--glass-line);border-radius:28px;padding:5px;box-shadow:0 10px 30px -12px rgba(0,0,0,.35)}
+.tab{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 2px 6px;font-size:10.5px;font-weight:600;color:var(--muted);cursor:pointer;border-radius:22px}
+.tab svg{width:24px;height:24px}
+.tab[aria-current="page"]{color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent)}
+
+textarea.code{font:12.5px/1.4 ui-monospace,Menlo,monospace;width:100%;min-height:110px;border:0;border-radius:12px;background:var(--surface2);color:var(--ink);padding:12px;resize:vertical}
+.stack{display:flex;flex-direction:column;gap:10px;padding:16px}
+.stack p{margin:0;color:var(--muted);font-size:14.5px;text-wrap:pretty}
+.masked{-webkit-text-security:disc}
+.stack input[type=password],.stack input[type=text]{font:inherit;font-size:16px;width:100%;border:0;border-radius:12px;background:var(--surface2);color:var(--ink);padding:13px 14px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div id="lock" class="lock">
+  <div class="lock-inner">
+    <div class="appicon" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V12M10 16V7.5M14 16v-5.5M18 16V5"/><path d="M4 19.5h16"/></svg></div>
+    <h1>Finanzplanung</h1>
+    <p id="lockMsg">Wird geladen …</p>
+    <div id="lkBody" class="lkbody"></div>
+    <p class="err" id="lkErr" role="alert"></p>
+    <p class="fine" id="lockFine">Deine Daten sind mit AES‑256 verschlüsselt und bleiben auf diesem Gerät. Die App baut keine Verbindung ins Internet auf.</p>
+    <p class="fine" id="verInfo"></p>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <div class="topbar"><div class="topbar-in" id="topbar"></div></div>
+  <main id="view"></main>
+  <nav class="tabbar" id="tabbar" aria-label="Bereiche"><div class="tabbar-in" id="tabs"></div></nav>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= Hilfsfunktionen ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), b => b.toString(16).padStart(2,'0')).join('');
+const num = v => { const n = typeof v === 'number' ? v : parseNum(v); return isFinite(n) ? n : 0; };
+function parseNum(s){
+  s = String(s ?? '').trim().replace(/[\s€% ]/g,'');
+  if (!s) return 0;
+  if (s.includes(',')) s = s.replace(/\./g,'').replace(',','.');
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g,'');
+  const n = parseFloat(s); return isFinite(n) ? n : 0;
+}
+const fmtIn = n => { const r = Math.round(n*1e6)/1e6; return String(r).replace('.',','); };
+const nfE  = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'});
+const nfE0 = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+const nfP  = new Intl.NumberFormat('de-DE',{style:'percent',minimumFractionDigits:1,maximumFractionDigits:2});
+const nfP0 = new Intl.NumberFormat('de-DE',{style:'percent',maximumFractionDigits:1});
+const nfN1 = new Intl.NumberFormat('de-DE',{maximumFractionDigits:1});
+const nfN2 = new Intl.NumberFormat('de-DE',{maximumFractionDigits:2});
+function fmt(v,f){
+  if (!isFinite(v)) return '–';
+  if (Math.abs(v) < 1e-9) v = 0;
+  switch(f){
+    case 'eur': return nfE.format(Math.abs(v)<0.005?0:v);
+    case 'eur0': return nfE0.format(v);
+    case 'pct': return nfP.format(v);
+    case 'pct0': return nfP0.format(v);
+    case 'pp': return (v>0?'+':'') + nfN1.format(v*100) + ' Prozentpunkte';
+    case 'h': return nfN1.format(v) + ' h';
+    default: return nfN2.format(v);
+  }
+}
+const FREQ = {'Wöchentlich':52/12,'Monatlich':1,'Vierteljährlich':1/3,'Halbjährlich':1/6,'Jährlich':1/12};
+const FWORD = {'Wöchentlich':'pro Woche','Monatlich':'monatlich','Vierteljährlich':'pro Quartal','Halbjährlich':'halbjährlich','Jährlich':'jährlich'};
+function fv(P,R,r,y){ const n=y*12; if (Math.abs(r)<1e-12) return P+R*n; const i=r/12, g=Math.pow(1+i,n); return P*g + R*(g-1)/i; }
+const getP = (o,p) => p.split('.').reduce((a,k)=>a==null?a:a[k], o);
+function setP(o,p,v){ const ks=p.split('.'); const last=ks.pop(); const t=ks.reduce((a,k)=>a[k],o); t[last]=v; }
+const fmtDate = iso => { try { const d=new Date(iso+'T12:00:00'); return isNaN(d)?'':d.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'}); } catch(e){ return ''; } };
+
+/* ================= Krypto (WebCrypto, AES-GCM 256, PBKDF2-SHA256) ================= */
+const STORE_KEY = 'fp.vault.v1';
+const ITER = 600000;
+const te = new TextEncoder(), td = new TextDecoder();
+function b64(buf){ const u=new Uint8Array(buf); let s=''; for (let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(s); }
+const ub64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+async function deriveKey(pw,salt,iter){
+  const base = await crypto.subtle.importKey('raw', te.encode(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'}, base, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+}
+async function seal(key,salt,iter,obj){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM',iv}, key, te.encode(JSON.stringify(obj)));
+  return {v:1,app:'finanzplanung',kdf:'PBKDF2-SHA256',iter,salt:b64(salt),iv:b64(iv),ct:b64(ct)};
+}
+async function unseal(key,vault){
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(vault.iv)}, key, ub64(vault.ct));
+  return JSON.parse(td.decode(pt));
+}
+
+/* Speicher: im Browser localStorage, in Scriptable eine Datei (über eine Nachrichten-Brücke) */
+const NATIVE = !!window.__FP_NATIVE;
+let nativeVault = null;
+if (NATIVE) { try { nativeVault = window.__FP_VAULT ? JSON.parse(window.__FP_VAULT) : null; } catch(e){ nativeVault=null; } delete window.__FP_VAULT; }
+const outQ = []; let wake = null;
+function toNative(m){ outQ.push(m); if (wake) wake(); }
+window.__fpTake = function(done){
+  let t=null; const flush=()=>{ wake=null; clearTimeout(t); done(JSON.stringify(outQ.splice(0))); };
+  if (outQ.length) { flush(); return; }
+  wake=flush; t=setTimeout(flush,1500);
+};
+window.__fpFlush = function(done){ Promise.resolve(saveTimer?saveNow():saving).then(()=>done(JSON.stringify(outQ.splice(0))),()=>done(JSON.stringify(outQ.splice(0)))); };
+window.__fpTakeNow = function(){ return JSON.stringify(outQ.splice(0)); };
+window.__fpFlushStart = function(){ if (saveTimer) saveNow(); return 'ok'; };
+window.__fpRetryKey = function(keys){ RAWKEYS = (keys||[]).filter(Boolean); RAWKEY = RAWKEYS[0]||null; DEVKEY=null; start('Wird erneut versucht …'); };
+window.__fpFile = function(text,target){ const el=document.getElementById(target); if(el){ el.value=String(text||'').trim(); el.dispatchEvent(new Event('input',{bubbles:true})); } };
+function altVaults(){ const out=[]; if (NATIVE && Array.isArray(window.__FP_ALT)) for (const s of window.__FP_ALT){ try{ const v=JSON.parse(s); if(v&&v.ct&&v.salt) out.push(v); }catch(e){} } return out; }
+function readVault(){ if (NATIVE) return nativeVault; try { const s=localStorage.getItem(STORE_KEY); return s?JSON.parse(s):null; } catch(e){ return null; } }
+function writeVault(v){ if (NATIVE){ nativeVault=v; toNative({t:'save',data:JSON.stringify(v)}); return; } localStorage.setItem(STORE_KEY, JSON.stringify(v)); }
+function removeVault(){ if (NATIVE){ nativeVault=null; toNative({t:'wipe'}); return; } try{ localStorage.removeItem(STORE_KEY); }catch(e){} }
+
+let KEY=null, SALT=null, S=null;   // SALT=null heißt: Geräteschlüssel (kein Passwort)
+// Mögliche Schlüssel (Schlüsselbund und Schlüsseldatei). Der erste, der die Daten öffnet, gilt.
+let RAWKEYS = Array.isArray(window.__FP_KEYS) ? window.__FP_KEYS.filter(Boolean) : (window.__FP_KEY ? [window.__FP_KEY] : []);
+let RAWKEY = RAWKEYS[0] || null; try { delete window.__FP_KEY; delete window.__FP_KEYS; } catch(e){}
+let DEVKEY = null;
+async function hashPin(pin,saltB64){
+  const base = await crypto.subtle.importKey('raw', te.encode(String(pin)), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({name:'PBKDF2',salt:ub64(saltB64),iterations:150000,hash:'SHA-256'}, base, 256);
+  return b64(bits);
+}
+async function sealDevice(key,obj){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM',iv}, key, te.encode(JSON.stringify(obj)));
+  return {v:2,app:'finanzplanung',mode:'device',iv:b64(iv),ct:b64(ct)};
+}
+async function deviceKey(create){
+  if (DEVKEY) return DEVKEY;
+  if (!RAWKEY && !NATIVE){ try { RAWKEY = localStorage.getItem('fp.devkey'); } catch(e){} }
+  if (!RAWKEY && create){
+    RAWKEY = b64(crypto.getRandomValues(new Uint8Array(32)));
+    if (NATIVE) toNative({t:'setKey',key:RAWKEY}); else { try { localStorage.setItem('fp.devkey',RAWKEY); } catch(e){} }
+  }
+  if (!RAWKEY) return null;
+  DEVKEY = await crypto.subtle.importKey('raw', ub64(RAWKEY), {name:'AES-GCM'}, false, ['encrypt','decrypt']);
+  return DEVKEY;
+}   // Schlüssel & Daten nur im Arbeitsspeicher, solange entsperrt
+let saveTimer=null, saving=Promise.resolve();
+
+/* ================= Datenmodell ================= */
+function defaults(){
+  const v = (name,wert,ziel='') => ({id:uid(),name,wert,ziel});
+  const vg = [
+    {id:uid(),name:'Aktien',ziel:0.7,items:[v('Altersvorsorge',8000,0.3),v('ETF',14000,0.7)]},
+    {id:uid(),name:'Liquidität',ziel:0.3,items:[v('Girokonto',2500),v('Tagesgeld Bank',6000),v('Wertpapierdepot',3000),v('Tagesgeld Broker',4000)]},
+    {id:uid(),name:'Sonstiges',ziel:'',items:[v('Geschäftsanteile',500),v('Bausparer',3500)]},
+  ];
+  const ref = n => { for (const g of vg) for (const i of g.items) if (i.name===n) return i.id; return ''; };
+  const b = (name,betrag,freq) => ({id:uid(),name,betrag,freq});
+  return {
+    v:1, beispiel:true, stand:new Date().toISOString().slice(0,10),
+    settings:{lockMin:5},
+    netto:{label:'Nettoeinkommen',betrag:2400},
+    budget:[
+      {name:'Fixkosten',items:[b('Miete',650,'Monatlich'),b('Versicherungen',60,'Monatlich'),b('Rundfunk',55.08,'Vierteljährlich'),b('Lebensmittel',300,'Monatlich')]},
+      {name:'Freizeit',items:[b('Auto',2400,'Jährlich'),b('Vereine',40,'Jährlich'),b('Fitnessstudio',30,'Monatlich'),b('Technik',15,'Monatlich'),b('Haarschnitt',25,'Monatlich'),b('Urlaub',1800,'Jährlich'),b('Kleidung',50,'Monatlich'),b('Freizeit',200,'Monatlich')]},
+      {name:'Sonstiges',items:[]},
+    ],
+    miete:{quote:0.3,notiz:'Ab April 2027',p1:{name:'Ich',netto:2400},p2:{name:'Partner/in',netto:1900},geplant:''},
+    sparen:{av:0.1,bs:0.04,etf:0.7,tg:0.3},
+    vermoegen:{groups:vg},
+    rendite:{inflation:0.02,rows:[
+      {id:uid(),name:'Welt-ETF (Altersvorsorge)',rendite:0.07,kosten:0.0012,ref:ref('Altersvorsorge')},
+      {id:uid(),name:'Welt-ETF',rendite:0.07,kosten:0.0019,ref:ref('ETF')},
+      {id:uid(),name:'Wertpapierdepot',rendite:0.02,kosten:0.006,ref:ref('Wertpapierdepot')},
+      {id:uid(),name:'Tagesgeld Broker',rendite:0.025,kosten:0,ref:ref('Tagesgeld Broker')},
+      {id:uid(),name:'Tagesgeld Bank',rendite:0,kosten:0,ref:ref('Tagesgeld Bank')},
+      {id:uid(),name:'Geschäftsanteile',rendite:0.035,kosten:0,ref:ref('Geschäftsanteile')},
+      {id:uid(),name:'Bausparer',rendite:0.01,kosten:0,ref:ref('Bausparer')},
+      {id:uid(),name:'Girokonto',rendite:0,kosten:0,ref:ref('Girokonto')},
+    ]},
+    gehalt:[
+      {id:uid(),name:'Aktuell',stunden:37.5,brutto:3800,netto:2400},
+      {id:uid(),name:'Mit 40 Stunden',stunden:40,brutto:4050,netto:2530},
+    ],
+    zins:{start:10000,rate:200,rendite:0.07,jahre:25,inflation:0.02,ziel:''},
+  };
+}
+// Alter Zinseszins-Vergleich (Fonds/ETF, drei Zeiträume) -> allgemeiner Rechner
+function migrateZins(z,fonds,def){
+  if (!z || typeof z!=='object') return Object.assign({},def);
+  const out = {start: z.start ?? def.start, rate: z.rate ?? def.rate, ziel: z.ziel ?? ''};
+  out.rendite = z.rendite ?? z.daumen ?? def.rendite;
+  out.jahre = Array.isArray(z.jahre) ? num(z.jahre[1] ?? z.jahre[0] ?? def.jahre) : (z.jahre ?? def.jahre);
+  out.inflation = z.inflation ?? (fonds && fonds.inflation!=null ? fonds.inflation : def.inflation);
+  return out;
+}
+// Alter Mietrechner (Gehalts-Szenario × Faktor) -> zwei getrennte Einkommen
+function migrateMiete(m,gehalt,def){
+  if (!m || typeof m!=='object') return JSON.parse(JSON.stringify(def));
+  const out = {quote: m.quote ?? 0.3, notiz: m.notiz ?? '', geplant: m.geplant ?? ''};
+  if (m.p1 && m.p2){ out.p1=Object.assign({name:'Ich',netto:0},m.p1); out.p2=Object.assign({name:'Partner/in',netto:0},m.p2); return out; }
+  const g = gehalt[num(m.szenario)] || gehalt[0];
+  const n1 = g ? num(g.netto) : 0, f = num(m.faktor ?? 1);
+  out.p1 = {name:'Ich', netto:n1};
+  out.p2 = {name:'Partner/in', netto:Math.round(n1*Math.max(0,f-1)*100)/100};
+  return out;
+}
+function normalize(d){
+  const D = defaults(), o = (d && typeof d==='object') ? d : {};
+  const out = {v:1, beispiel:!!o.beispiel, stand:o.stand||D.stand,
+    settings:Object.assign({lockMin:5}, o.settings||{}),
+    netto:Object.assign({}, D.netto, o.netto||{}),
+    budget:Array.isArray(o.budget)?o.budget:D.budget,
+    miete:migrateMiete(o.miete, Array.isArray(o.gehalt)?o.gehalt:D.gehalt, D.miete),
+    sparen:Object.assign({}, D.sparen, o.sparen||{}),
+    vermoegen:(o.vermoegen&&Array.isArray(o.vermoegen.groups))?o.vermoegen:D.vermoegen,
+    rendite:Object.assign({inflation:0.02,rows:[]}, o.rendite||D.rendite),
+    gehalt:Array.isArray(o.gehalt)?o.gehalt:D.gehalt,
+    zins:migrateZins(o.zins, o.fonds, D.zins),
+  };
+  out.budget.forEach(g=>{ g.items = (g.items||[]).map(i=>Object.assign({id:uid(),name:'',betrag:0,freq:'Monatlich'},i)); });
+  out.vermoegen.groups.forEach(g=>{ g.id=g.id||uid(); if(g.ziel===undefined) g.ziel=''; g.items=(g.items||[]).map(i=>Object.assign({id:uid(),name:'',wert:0,ziel:''},i)); });
+  out.rendite.rows = (out.rendite.rows||[]).map(r=>Object.assign({id:uid(),name:'',rendite:0,kosten:0,ref:''},r));
+  out.gehalt = out.gehalt.map(g=>Object.assign({id:uid(),name:'',stunden:40,brutto:0,netto:0},g));
+  return out;
+}
+
+/* ================= Berechnungen (entsprechen den Excel-Formeln) ================= */
+let F = {}, R = {};
+function compute(){
+  F = {}; R = {};
+  const put = (k,v,f='eur') => { F[k] = {t:fmt(v,f), neg:v < -1e-9, n:v}; return v; };
+  const N = num(S.netto.betrag); R.N=N;
+  put('netto',N); put('nettoJ',N*12);
+  let ges=0; R.groups=[];
+  S.budget.forEach((g,gi)=>{
+    let sum=0;
+    g.items.forEach((it,ii)=>{ const m=num(it.betrag)*(FREQ[it.freq]??0); sum+=m; put(`b${gi}i${ii}m`,m); put(`b${gi}i${ii}p`,N?m/N:0,'pct'); put(`b${gi}i${ii}j`,m*12); });
+    ges+=sum; R.groups.push(sum);
+    put(`b${gi}sum`,sum); put(`b${gi}p`,N?sum/N:0,'pct'); put(`b${gi}j`,sum*12);
+  });
+  R.ges=ges; put('ausg',ges); put('ausgP',N?ges/N:0,'pct'); put('ausgJ',ges*12); put('rest',N-ges); put('restP',N?(N-ges)/N:0,'pct');
+  const sp=S.sparen, av=num(sp.av), bs=num(sp.bs), e=num(sp.etf), t=num(sp.tg);
+  const aq = N ? (N-ges)/N - av - bs : 0;
+  const vAV=N*av, vBS=N*bs, vE=e*aq*N, vT=t*aq*N, sum=vAV+vBS+vE+vT;
+  R.sp={aq,vAV,vBS,vE,vT,sum,et:e+t};
+  put('anlQ',aq,'pct'); put('anlE',aq*N);
+  put('sAV',vAV); put('sBS',vBS); put('sETF',vE); put('sTG',vT);
+  put('sAVp',N?vAV/N:0,'pct'); put('sBSp',N?vBS/N:0,'pct'); put('sETFp',N?vE/N:0,'pct'); put('sTGp',N?vT/N:0,'pct');
+  put('spar',sum); put('sparJ',sum*12); put('sparQ',N?sum/N:0,'pct');
+  const ok=sum>0;
+  put('zeitnah',vE+vT); put('vZeit',ok?(vE+vT)/sum:NaN,'pct'); put('vAV',ok?vAV/sum:NaN,'pct'); put('vBS',ok?vBS/sum:NaN,'pct');
+  put('etfTg',e+t,'pct'); put('etfP',e,'pct0'); put('tgP',t,'pct0');
+  const M_=S.miete, n1=num(M_.p1.netto), n2=num(M_.p2.netto), nt=n1+n2, q=num(M_.quote), mx=nt*q;
+  R.miete={n1,n2,nt,mx,plan:(M_.geplant===''||M_.geplant==null)?null:num(M_.geplant)};
+  put('mN1',n1); put('mN2',n2); put('mNt',nt); put('mQ',q,'pct0'); put('mMax',mx); put('mMaxJ',mx*12);
+  put('mS1',nt?n1/nt:0,'pct0'); put('mS2',nt?n2/nt:0,'pct0'); put('mP1',nt?mx*n1/nt:0); put('mP2',nt?mx*n2/nt:0);
+  put('mHalf',mx/2); put('mSolo1',n1*q); put('mSolo2',n2*q);
+  if (R.miete.plan!=null){ const pl=R.miete.plan; put('mPlanP',nt?pl/nt:0,'pct'); put('mPlanDiff',mx-pl); put('mPlan1',nt?pl*n1/nt:0); put('mPlan2',nt?pl*n2/nt:0); put('mPlanRest',nt-pl); }
+  const gs = S.vermoegen.groups.map(g=>g.items.reduce((a,i)=>a+num(i.wert),0));
+  const tot = gs.reduce((a,b)=>a+b,0); R.vTot=tot; R.vGroups=gs;
+  put('vTot',tot);
+  const share={};
+  S.vermoegen.groups.forEach((g,gi)=>{
+    const p = tot?gs[gi]/tot:0;
+    put(`v${gi}sum`,gs[gi]); put(`v${gi}p`,p,'pct');
+    if (g.ziel!=='' && g.ziel!=null){ const z=num(g.ziel); put(`v${gi}diff`,p-z,'pp'); put(`v${gi}soll`,tot*z); put(`v${gi}abw`,gs[gi]-tot*z); put(`v${gi}z`,z,'pct0'); }
+    g.items.forEach((it,ii)=>{
+      const w=num(it.wert); share[it.id]=tot?w/tot:0;
+      const ig = gs[gi]?w/gs[gi]:0;
+      put(`v${gi}i${ii}w`,w); put(`v${gi}i${ii}p`,share[it.id],'pct'); put(`v${gi}i${ii}g`,ig,'pct');
+      if (it.ziel!=='' && it.ziel!=null){ put(`v${gi}i${ii}d`,ig-num(it.ziel),'pp'); }
+    });
+  });
+  R.share=share;
+  let wr=0,wk=0,as=0;
+  S.rendite.rows.forEach((r,ri)=>{ const a=share[r.ref]??0; as+=a; put(`r${ri}a`,a,'pct'); put(`r${ri}r`,num(r.rendite),'pct'); put(`r${ri}k`,num(r.kosten),'pct'); wr+=a*num(r.rendite); wk+=a*num(r.kosten); });
+  R.rGew=wr; R.rAnteile=as;
+  put('rGew',wr,'pct'); put('rReal',wr-num(S.rendite.inflation),'pct'); put('rKosten',wk,'pct'); put('rNetto',wr-wk,'pct'); put('rAnteile',as,'pct'); put('rInfl',num(S.rendite.inflation),'pct');
+  S.gehalt.forEach((g,i)=>{
+    const h=num(g.stunden)*4, br=num(g.brutto), ne=num(g.netto);
+    put(`g${i}hw`,num(g.stunden),'h'); put(`g${i}hm`,h,'h'); put(`g${i}b`,br); put(`g${i}n`,ne); put(`g${i}bj`,br*12); put(`g${i}nj`,ne*12); put(`g${i}bh`,h?br/h:0); put(`g${i}nh`,h?ne/h:0); put(`g${i}q`,br?ne/br:0,'pct');
+    if (i>0 && S.gehalt[0]){ put(`g${i}dn`,ne-num(S.gehalt[0].netto)); put(`g${i}db`,br-num(S.gehalt[0].brutto)); }
+  });
+  const z=S.zins, P=num(z.start), M=num(z.rate), r=num(z.rendite), Y=Math.max(0,Math.round(num(z.jahre))), infl=num(z.inflation);
+  const end=fv(P,M,r,Y), dep=P+12*M*Y, real=end/Math.pow(1+infl,Y);
+  R.z={P,M,r,Y,infl,end,dep,real};
+  put('zEnd',end,'eur0'); put('zDep',dep,'eur0'); put('zGain',end-dep,'eur0'); put('zReal',real,'eur0'); put('zGainP',dep>0?(end-dep)/dep:0,'pct0');
+  put('zY',Y,'n'); put('zR',r,'pct'); put('zInfl',infl,'pct'); put('zGainShare',end>0?(end-dep)/end:0,'pct0');
+  if (z.ziel!=='' && z.ziel!=null){
+    const Z=num(z.ziel), n=Y*12, i=r/12, g=Math.pow(1+i,n);
+    const need = n<=0 ? NaN : Math.abs(i)<1e-12 ? (Z-P)/n : (Z-P*g)*i/(g-1);
+    R.z.need=need; put('zNeed',Math.max(0,need),'eur');
+  }
+}
+
+/* ================= Symbole ================= */
+const IC = {
+  house:'<path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/>',
+  shield:'<path d="M12 3.5 19 6v5.5c0 4.2-3 7.6-7 9-4-1.4-7-4.8-7-9V6z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
+  tv:'<rect x="3.5" y="7" width="17" height="12" rx="2.5"/><path d="m8.5 3.5 3.5 3.5 3.5-3.5"/>',
+  cart:'<path d="M3.5 4.5h2l2 10.5h10l2-7.5H7"/><circle cx="9.5" cy="19" r="1.3"/><circle cx="16.5" cy="19" r="1.3"/>',
+  car:'<path d="M5 12l2-5h10l2 5"/><rect x="3.5" y="12" width="17" height="5" rx="1.5"/><path d="M6 17v2M18 17v2"/><circle cx="7.5" cy="14.5" r=".6"/><circle cx="16.5" cy="14.5" r=".6"/>',
+  people:'<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="16.5" cy="9.5" r="2.4"/><path d="M15.8 14.1c2.4-.2 4.2 1.4 4.7 4.4"/>',
+  dumbbell:'<path d="M6.5 7.5v9M17.5 7.5v9M3.5 10v4M20.5 10v4M6.5 12h11"/>',
+  laptop:'<rect x="5" y="5.5" width="14" height="10" rx="1.5"/><path d="M3 18.5h18"/>',
+  scissors:'<circle cx="6.5" cy="17" r="2.5"/><circle cx="17.5" cy="17" r="2.5"/><path d="M8.3 15.2 18 4.5M15.7 15.2 6 4.5"/>',
+  plane:'<path d="M20.5 3.5 3.5 10.5l6.5 2.5 2.5 6.5z"/><path d="m10 13 4.5-4.5"/>',
+  shirt:'<path d="M8.5 4 4 6.5 5.5 11l2-.8V20h9v-9.8l2 .8L20 6.5 15.5 4c-.6 1.5-1.9 2.5-3.5 2.5S9.1 5.5 8.5 4z"/>',
+  sparkle:'<path d="M11 3.5c.6 4.4 2.1 5.9 6.5 6.5-4.4.6-5.9 2.1-6.5 6.5-.6-4.4-2.1-5.9-6.5-6.5 4.4-.6 5.9-2.1 6.5-6.5z"/><path d="M18 14.5c.3 1.9.9 2.5 2.5 2.8-1.6.3-2.2.9-2.5 2.7-.3-1.8-.9-2.4-2.5-2.7 1.6-.3 2.2-.9 2.5-2.8z"/>',
+  umbrella:'<path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v6.5a2 2 0 0 1-4 0"/>',
+  trend:'<path d="M3.5 17 9 11.5l4 4 7.5-8"/><path d="M15 7.5h5.5V13"/>',
+  coins:'<circle cx="9" cy="9.5" r="5.5"/><path d="M14.2 7.6a5.5 5.5 0 1 1-5.3 9.9"/>',
+  card:'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/>',
+  building:'<rect x="5" y="3.5" width="14" height="17" rx="1.5"/><path d="M9 7.5h2M13 7.5h2M9 11h2M13 11h2M9 14.5h2M13 14.5h2"/>',
+  briefcase:'<rect x="3.5" y="7.5" width="17" height="12" rx="2.5"/><path d="M9 7.5v-2h6v2M3.5 12.5h17"/>',
+  bank:'<path d="M3.5 9.5 12 4.5l8.5 5"/><path d="M5.5 10v7.5M9.5 10v7.5M14.5 10v7.5M18.5 10v7.5M3.5 20h17"/>',
+  layers:'<path d="m12 4 8.5 4.5L12 13 3.5 8.5z"/><path d="m3.5 12.5 8.5 4.5 8.5-4.5"/><path d="m3.5 16.5 8.5 4.5 8.5-4.5"/>',
+  percent:'<path d="M18.5 5.5l-13 13"/><circle cx="7" cy="7" r="2.3"/><circle cx="17" cy="17" r="2.3"/>',
+  growth:'<path d="M4 20h16"/><path d="M6.5 17v-3M10.5 17v-5.5M14.5 17v-8M18.5 17V5"/>',
+  lock:'<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/>',
+  key:'<circle cx="8" cy="15" r="4.5"/><path d="m11.2 11.8 8.3-8.3M16.5 6.5l2.5 2.5M14.5 8.5l2 2"/>',
+  home:'<path d="M3.5 11.5 12 4.5l8.5 7"/><path d="M6 10v9.5h12V10"/>',
+  wallet:'<path d="M18.5 7.5V6a2 2 0 0 0-2-2H5.5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2V9.5a2 2 0 0 0-2-2H5.5"/><circle cx="16.5" cy="14" r="1.2"/>',
+  piggy:'<path d="M19 9.5c.9.8 1.4 1.7 1.5 2.5h1v3.5h-1.4c-.5.9-1.2 1.6-2.1 2.2V20h-3v-1.6c-.8.1-1.6.2-2.5.2s-1.6-.1-2.5-.2V20H6v-2.6C4.2 16.2 3 14.3 3 12c0-3.6 3.6-6 8-6 1.6 0 3 .3 4.3.8L18.5 5z"/><circle cx="15.5" cy="10.5" r=".7"/>',
+  pie:'<path d="M12 3.5v8.5h8.5A8.5 8.5 0 1 1 12 3.5z"/><path d="M15 3.8A8.5 8.5 0 0 1 20.2 9H15z"/>',
+  grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  chev:'<path d="m9 5 7 7-7 7"/>',
+  back:'<path d="m15 4.5-7.5 7.5 7.5 7.5"/>',
+  warn:'<path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4.5M12 17.3v.2"/>',
+  info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/>',
+  calendar:'<rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3.5v4M16 3.5v4"/>',
+  share:'<path d="M12 3.5v11"/><path d="m7.5 8 4.5-4.5L16.5 8"/><path d="M7 11.5H5.5v9h13v-9H17"/>',
+  doc:'<path d="M6 3.5h8l4 4v13H6z"/><path d="M14 3.5v4h4M9 12.5h6M9 16h6"/>',
+  table:'<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 9.5v10"/>',
+  target:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/>',
+};
+const svg = (n,s=22,w=1.9) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]||''}</svg>`;
+const ICON_RULES = [
+  [/bauspar/i,'house'],[/miete|wohn|nebenkost|strom|heiz/i,'house'],[/versich/i,'shield'],[/rundfunk|gez|tv|stream|netflix|spotify|abo/i,'tv'],
+  [/lebensmittel|einkauf|essen|super|drogerie/i,'cart'],[/auto|kfz|tank|benzin|bahn|ticket|fahr/i,'car'],[/gym|fitness|sport|studio/i,'dumbbell'],
+  [/verein|mitglied/i,'people'],[/technik|handy|internet|laptop|computer|software/i,'laptop'],[/haar|friseur|frisör/i,'scissors'],[/urlaub|reise/i,'plane'],
+  [/kleid|mode|schuh/i,'shirt'],[/freizeit|hobby|spaß|ausgehen/i,'sparkle'],[/alters|rente|vorsorge/i,'umbrella'],[/geschäft|anteil|genossen/i,'building'],
+  [/tagesgeld|festgeld|spar/i,'coins'],[/etf|aktie|fonds|depot|opti|msci|ftse|vanguard|spdr|uni/i,'trend'],[/giro|konto|karte|bar/i,'card'],
+  [/gehalt|lohn|brutto|netto|ausbildung|job|einkommen/i,'briefcase'],[/bank/i,'bank'],
+];
+function iconFor(name){ for (const [re,ic] of ICON_RULES) if (re.test(name||'')) return ic; return null; }
+function icBox(name,color,forced){ const ic=forced||iconFor(name); return `<span class="ic${ic?'':' letter'}" style="--c:${color}">${ic?svg(ic):esc((String(name||'?').trim()[0]||'?').toUpperCase())}</span>`; }
+const GCOL = ['var(--blue)','var(--orange)','var(--red)','var(--violet)','var(--ochre)'];
+const VCOL = ['var(--green)','var(--blue)','var(--ochre)','var(--violet)','var(--red)'];
+const SAVE = 'var(--green)';
+
+/* ================= Bausteine ================= */
+const o = (k,cls='') => { const f=F[k]||{t:'–'}; return `<span data-k="${k}" class="${cls}${f.neg?' neg':''}">${esc(f.t)}</span>`; };
+const pid = p => 'i-'+p.replace(/\./g,'-');
+function valFor(type,v){
+  if (type==='pct') return fmtIn(num(v)*100);
+  if (type==='pcto') return (v===''||v==null)?'':fmtIn(num(v)*100);
+  if (type==='numo') return (v===''||v==null)?'':fmtIn(num(v));
+  if (type==='num'||type==='int') return fmtIn(num(v));
+  return v ?? '';
+}
+function fld(path,type='num',opt={}){
+  const v=getP(S,path), unit = opt.unit ?? (type==='pct'||type==='pcto' ? '%' : (type==='num'||type==='numo') ? '€' : '');
+  const im = (type==='text'||type==='date') ? '' : `inputmode="${type==='int'?'numeric':'decimal'}"`;
+  return `<span class="fld ${opt.w||'w1'}${type==='text'?' txt':''}"><input id="${pid(path)}" type="${type==='date'?'date':'text'}" data-p="${path}" data-t="${type}" value="${esc(valFor(type,v))}" ${im} autocomplete="off" autocorrect="off" autocapitalize="${type==='text'?'sentences':'off'}" spellcheck="false" ${opt.ph?`placeholder="${esc(opt.ph)}"`:''} aria-label="${esc(opt.label||'')}">${unit?`<span class="u">${unit}</span>`:''}</span>`;
+}
+const row = (label,control,sub='') => `<div class="fr"><label for="${(control.match(/id="([^"]+)"/)||[])[1]||''}">${label}${sub?`<small>${sub}</small>`:''}</label>${control}</div>`;
+function li({go,edit,icon,t,s='',v='',vs='',cls='',chev=true,attrs=''}){
+  const tag = (go||edit)?'button':'div';
+  const a = go?`data-go="${go}"`:edit?`data-edit='${JSON.stringify(edit)}'`:'';
+  return `<${tag} class="li ${cls}${!(go||edit)?' static':''}${icon?'':' noicon'}" ${tag==='button'?'type="button"':''} ${a} ${attrs}>${icon||''}<span class="t"><b>${t}</b>${s?`<small>${s}</small>`:''}</span>${v?`<span class="v">${v}${vs?`<small>${vs}</small>`:''}</span>`:''}${(go||edit)&&chev?`<span class="chev">${svg('chev',16,2.2)}</span>`:''}</${tag}>`;
+}
+const addLi = (act,label,attrs='') => `<button class="li add" type="button" data-act="${act}" ${attrs}><span class="ic">${svg('plus',22,2.3)}</span><span class="t"><b>${esc(label)}</b></span></button>`;
+const alert = (cls,text,act='') => `<div class="alert ${cls}">${svg(cls==='info'?'info':'warn',20,2)}<span>${text}</span>${act}</div>`;
+
+/* ================= Diagramme / Live-Bereiche ================= */
+const CH = {
+  ribbon(){
+    const N=R.N; if (N<=0) return '<div class="ribbon"></div>';
+    const segs = S.budget.map((g,i)=>({n:g.name,v:Math.max(0,R.groups[i]),c:GCOL[i%5]})).concat([{n:'Sparen',v:Math.max(0,N-R.ges),c:SAVE}]);
+    const tot = Math.max(N, segs.reduce((a,s)=>a+s.v,0));
+    return `<div class="ribbon${UI.anim?' grow':''}" role="img" aria-label="Aufteilung des Nettoeinkommens">${segs.filter(s=>s.v>0).map((s,i)=>`<span style="flex:${(s.v/tot).toFixed(4)} 1 0;background:${s.c};animation-delay:${i*60}ms"></span>`).join('')}</div>
+      <div class="legend">${segs.map(s=>`<span><i class="sw" style="background:${s.c}"></i>${esc(s.n)} <b>${fmt(N?s.v/N:0,'pct0')}</b></span>`).join('')}</div>`;
+  },
+  lede(){
+    const N=R.N;
+    if (N<=0) return `<p class="lede">Trag zuerst dein Nettoeinkommen ein.</p>`;
+    const g=R.groups, cls=['c-fix','c-free','c-misc'];
+    const E0=v=>esc(fmt(Math.round(v),'eur0'));
+    const parts = S.budget.map((gr,i)=>g[i]>0?`<b class="${cls[i]||''}">${E0(g[i])}</b> für ${esc(gr.name)}`:null).filter(Boolean);
+    const list = parts.length>1 ? parts.slice(0,-1).join(', ')+' und '+parts[parts.length-1] : (parts[0]||'nichts');
+    const end = R.ges>N ? `Das sind <b class="neg">${E0(R.ges-N)}</b> mehr, als reinkommt.`
+      : `Zum Sparen bleiben <b class="c-save">${E0(N-R.ges)}</b>.`;
+    return `<p class="lede">Von <b>${E0(N)}</b> netto gehen ${list} weg. ${end}</p>`;
+  },
+  warn(){
+    const a=[];
+    if (R.N>0 && R.ges<=R.N && R.sp.aq<0) a.push(['bad',`Altersvorsorge und Bausparer brauchen mehr, als nach den Ausgaben übrig bleibt. Für ETF und Tagesgeld fehlen ${fmt(-R.sp.aq*R.N,'eur')} im Monat.`]);
+    if (Math.abs(R.sp.et-1)>0.0001) a.push(['warn',`ETF und Tagesgeld ergeben zusammen ${fmt(R.sp.et,'pct')} statt 100 %. Stell die Aufteilung unter „Sparen“ neu ein.`]);
+    return a.map(([c,t])=>alert(c,esc(t))).join('');
+  },
+  savelede(){
+    const s=R.sp.sum;
+    if (R.N<=0) return `<p class="lede">Trag zuerst dein Nettoeinkommen ein.</p>`;
+    return s>=0 ? `<p class="lede">Jeden Monat legst du <b class="c-save">${esc(fmt(s,'eur'))}</b> zurück. Das sind <b>${esc(fmt(R.N?s/R.N:0,'pct'))}</b> deines Nettos.</p>`
+      : `<p class="lede">Dein Sparplan liegt bei <b class="neg">${esc(fmt(s,'eur'))}</b> im Monat. ${R.ges>R.N?'Deine Ausgaben sind höher als dein Netto.':'Altersvorsorge und Bausparer brauchen mehr, als übrig bleibt.'}</p>`;
+  },
+  flow(){
+    const N=R.N||1, sp=R.sp;
+    const r=(op,t,v,c,s='')=>`<div class="li static noicon" style="--c:${c}"><span class="op">${op}</span><span class="t"><b>${t}</b>${s?`<small>${s}</small>`:''}<div class="bar"><i style="width:${Math.max(0,Math.min(100,Math.abs(v)/N*100)).toFixed(1)}%"></i></div></span><span class="v${v<0?' neg':''}">${esc(fmt(v,'eur'))}</span></div>`;
+    return r('','Nettoeinkommen',R.N,'var(--ink)')+r('−','Ausgaben',R.ges,'var(--blue)')+r('−','Altersvorsorge',sp.vAV,'var(--violet)')+r('−','Bausparer',sp.vBS,'var(--ochre)')
+      +r('=','Frei für die Anlage',sp.aq*R.N,SAVE,`davon ${fmt(num(S.sparen.etf),'pct0')} ETF und ${fmt(num(S.sparen.tg),'pct0')} Tagesgeld`);
+  },
+  rules(asData){
+    const N=R.N, sp=R.sp, P=v=>fmt(v,'pct0'), E=v=>fmt(v,'eur');
+    const st=(lvl,txt)=>`<span class="tag ${lvl==='ok'?'':lvl==='warn'?'warn':lvl==='bad'?'neg':'plain'}">${esc(txt)}</span>`;
+    const lvl3=(okc,warnc)=>okc?'ok':warnc?'warn':'bad';
+    const label={ok:'Erfüllt',warn:'Knapp',bad:'Nicht erfüllt',na:'Offen'};
+    const out=[], data=[];
+    const add=(ic,col,title,rule,you,l,attrs='')=>(data.push({title,rule,you,status:label[l]}),out.push(`<${attrs?'button':'div'} class="rule" ${attrs?'type="button" '+attrs:''}>${icBox('',col,ic)}<span class="t"><b>${title}</b><small>${rule}</small><span class="you">${you}</span></span>${st(l,label[l])}</${attrs?'button':'div'}>`));
+    // 1 Altersvorsorge
+    const av=num(S.sparen.av);
+    add('umbrella','var(--violet)','Altersvorsorge','Ziel: 10 % vom Netto fürs Alter zurücklegen.',`Du: ${P(av)} (${E(sp.vAV)} im Monat)`, lvl3(av>=0.0999,av>=0.07));
+    // 2 70/30
+    const e=num(S.sparen.etf), t=num(S.sparen.tg);
+    add('pie',SAVE,'Aufteilung 70 / 30','70 % in ETFs für Rendite, 30 % aufs Tagesgeld für Sicherheit.',`Du: ${P(e)} ETF, ${P(t)} Tagesgeld`, lvl3(Math.abs(e-0.7)<=0.05,Math.abs(e-0.7)<=0.15));
+    // 3 Wohnen
+    let rent=0; S.budget.forEach(g=>g.items.forEach(it=>{ if(/miete|wohn|nebenkost/i.test(it.name||'')) rent+=num(it.betrag)*(FREQ[it.freq]??0); }));
+    if (rent>0 && N>0){ const q=rent/N; add('house','var(--red)','Wohnen höchstens 30 %','Warmmiete inklusive Nebenkosten maximal 30 % vom Netto.',`Du: ${P(q)} (${E(rent)} im Monat)`, lvl3(q<=0.3,q<=0.35),`data-go="miete"`); }
+    else add('house','var(--red)','Wohnen höchstens 30 %','Warmmiete inklusive Nebenkosten maximal 30 % vom Netto.',`Keine Miete im Budget. Für später: bis ${E(R.miete.mx)} laut Mietrechner`,'na',`data-go="miete"`);
+    // 4 50/30/20
+    if (N>0){ const f=(R.groups[0]||0)/N, fr=(R.groups[1]||0)/N, sv=(N-R.ges)/N; const n=(f<=0.5)+(fr<=0.3)+(sv>=0.2);
+      add('wallet','var(--blue)','50 / 30 / 20','Höchstens 50 % für Fixkosten, 30 % für Freizeit, mindestens 20 % sparen.',`Du: ${P(f)} / ${P(fr)} / ${P(sv)}`, n===3?'ok':n===2?'warn':'bad',`data-go="budget"`); }
+    // 5 Notgroschen
+    const liqG=S.vermoegen.groups.findIndex(g=>/liquid/i.test(g.name||''));
+    let liq=0; if (liqG>=0) liq=R.vGroups[liqG]; else S.vermoegen.groups.forEach(g=>g.items.forEach(i=>{ if(/tagesgeld|giro|konto/i.test(i.name||'')) liq+=num(i.wert); }));
+    if (R.ges>0){ const m=liq/R.ges; add('coins','var(--ochre)','Notgroschen','3 bis 6 Monatsausgaben jederzeit verfügbar auf Tagesgeld oder Konto.',`Du: ${nfN1.format(m)} Monatsausgaben (${E(liq)})`, lvl3(m>=3,m>=1),`data-go="vermoegen"`); }
+    // 6 Kosten
+    const k=num(F.rKosten?F.rKosten.n:0);
+    add('percent','var(--orange)','Niedrige Kosten','Laufende Kosten der Anlagen möglichst unter 0,5 % im Jahr. Breite ETFs liegen meist bei 0,1 bis 0,3 %.',`Du: ${fmt(k,'pct')} im Schnitt`, lvl3(k<=0.005,k<=0.01),`data-go="rendite"`);
+    return asData?data:out.join('');
+  },
+  mieteLede(){
+    const m=R.miete;
+    if (m.nt<=0) return `<p class="lede">Trag eure beiden Netto-Einkommen ein, dann siehst du, welche Miete passt.</p>`;
+    return `<p class="lede">Zusammen habt ihr <b>${esc(fmt(Math.round(m.nt),'eur0'))}</b> netto. Bei höchstens ${esc(F.mQ.t)} passt eine Warmmiete bis <b class="c-misc">${esc(fmt(Math.floor(m.mx),'eur0'))}</b>.</p>`;
+  },
+  mietePlan(){
+    const m=R.miete; if (m.plan==null || m.nt<=0) return '';
+    const ok = m.plan <= m.mx + 0.005;
+    const txt = ok ? `Passt. Die Wohnung kostet ${esc(F.mPlanP.t)} eures Nettos, ${esc(fmt(m.mx-m.plan,'eur'))} unter eurer Grenze. ${esc(S.miete.p1.name||'Person 1')} zahlt ${esc(F.mPlan1.t)}, ${esc(S.miete.p2.name||'Person 2')} ${esc(F.mPlan2.t)}.`
+      : `Zu teuer. Die Wohnung kostet ${esc(F.mPlanP.t)} eures Nettos und liegt ${esc(fmt(m.plan-m.mx,'eur'))} über eurer Grenze.`;
+    return alert(ok?'info':'bad', txt);
+  },
+  zeitnah(){ return R.sp.sum>0 ? `<p class="note-txt">Sparen zeitnah (ETF und Tagesgeld): ${esc(F.zeitnah.t)}, also ${esc(F.vZeit.t)} deines Sparbetrags.</p>` : ''; },
+  etfWarn(){ return Math.abs(R.sp.et-1)>0.0001 ? alert('warn',`ETF und Tagesgeld ergeben zusammen ${esc(fmt(R.sp.et,'pct'))}. Schieb den Regler einmal, dann passt es wieder.`) : ''; },
+  donut(){
+    const tot=R.vTot, gs=R.vGroups; const r=54, c=2*Math.PI*r; let off=0;
+    const arcs = tot>0 ? gs.map((v,i)=>{ const len=Math.max(0,v)/tot*c; if(len<=0) return ''; const s=`<circle r="${r}" cx="68" cy="68" fill="none" stroke="${VCOL[i%5]}" stroke-width="16" stroke-dasharray="${Math.max(0.01,len-3).toFixed(2)} ${c.toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 68 68)"/>`; off+=len; return s; }).join('') : '';
+    return `<div class="donut"><svg viewBox="0 0 136 136" width="136" height="136" role="img" aria-label="Vermögensverteilung"><circle r="${r}" cx="68" cy="68" fill="none" stroke="var(--line)" stroke-width="16"/>${arcs}
+      <text x="68" y="64" text-anchor="middle" style="fill:var(--muted);font:500 11px var(--font)">gesamt</text><text x="68" y="82" text-anchor="middle" style="fill:var(--ink);font:700 15px var(--round)">${esc(short(tot))} €</text></svg>
+      <div class="legend">${S.vermoegen.groups.map((g,i)=>`<div class="lrow"><span><i class="sw" style="background:${VCOL[i%5]}"></i>${esc(g.name)}</span><b>${fmt(tot?gs[i]/tot:0,'pct0')}</b></div>`).join('')}</div></div>`;
+  },
+  rAnteile(){ return Math.abs(R.rAnteile-1)>0.0005 && R.vTot>0 ? alert('warn',`Die verknüpften Anlagen decken ${esc(fmt(R.rAnteile,'pct'))} deines Vermögens ab. Was nicht verknüpft ist, zählt mit 0 % Rendite.`) : ''; },
+  zins(){
+    const {P,M,r,Y,infl}=R.z; const real=UI.zReal; const YY=Math.max(1,Y);
+    const pts=[], dep=[]; for(let y=0;y<=YY;y++){ const d=Math.pow(1+infl,y); const f=real?d:1; pts.push([y,fv(P,M,r,y)/f]); dep.push([y,(P+12*M*y)/f]); }
+    const max=Math.max(1,...pts.map(p=>p[1]),...dep.map(p=>p[1])), min=Math.min(0,...pts.map(p=>p[1]));
+    const step=niceStep((max-min)/4); const top=Math.ceil(max/step)*step, bot=Math.floor(min/step)*step;
+    const W=340,H=200,l=44,rt=8,tp=8,bt=22, iw=W-l-rt, ih=H-tp-bt;
+    const X=y=>l+y/YY*iw, Yv=v=>tp+(1-(v-bot)/(top-bot))*ih;
+    let g=''; for(let v=bot; v<=top+step/2; v+=step){ g+=`<line x1="${l}" x2="${W-rt}" y1="${Yv(v).toFixed(1)}" y2="${Yv(v).toFixed(1)}" stroke="var(--line)" stroke-width="1"/><text x="${l-6}" y="${(Yv(v)+3).toFixed(1)}" text-anchor="end">${short(v)}</text>`; }
+    const tStep = YY<=10?2:YY<=20?5:YY<=40?10:20; for(let y=0;y<=YY;y+=tStep) g+=`<text x="${X(y).toFixed(1)}" y="${H-5}" text-anchor="middle">${y} J.</text>`;
+    const path=a=>a.map((p,i)=>`${i?'L':'M'}${X(p[0]).toFixed(1)} ${Yv(p[1]).toFixed(1)}`).join(' ');
+    const base=Yv(Math.max(bot,0)).toFixed(1);
+    const areaTot=`<path d="${path(pts)} L${X(YY).toFixed(1)} ${base} L${X(0).toFixed(1)} ${base}Z" fill="var(--green)" opacity=".18"/>`;
+    const areaDep=`<path d="${path(dep)} L${X(YY).toFixed(1)} ${base} L${X(0).toFixed(1)} ${base}Z" fill="var(--blue)" opacity=".22"/>`;
+    const lines=`<path d="${path(dep)}" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round"/><path d="${path(pts)}" fill="none" stroke="var(--green)" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${X(YY).toFixed(1)}" cy="${Yv(pts[pts.length-1][1]).toFixed(1)}" r="4" fill="var(--green)"/>`;
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Vermögensentwicklung">${g}${areaTot}${areaDep}${lines}</svg>
+      <div class="legend" style="margin-top:8px"><span><i class="sw" style="background:var(--green)"></i>Kapital</span><span><i class="sw" style="background:var(--blue)"></i>Eingezahlt</span><span style="margin-left:auto">${real?'in heutiger Kaufkraft':'nominal'}</span></div>`;
+  },
+  zinsLede(){
+    const z=R.z; if (z.Y<=0) return `<p class="lede">Gib eine Laufzeit ein.</p>`;
+    return `<p class="lede">Nach <b>${z.Y} Jahren</b> hast du rund <b class="c-save">${esc(fmt(z.end,'eur0'))}</b>. Davon sind <b>${esc(fmt(z.end-z.dep,'eur0'))}</b> Zinsen und Erträge.</p>`;
+  },
+  zinsZiel(){
+    const z=R.z; if (z.need==null) return '';
+    if (!isFinite(z.need)) return alert('warn','Gib eine Laufzeit ein, dann rechne ich die Sparrate aus.');
+    if (z.need<=0) return alert('info',`Das schaffst du schon mit dem Startkapital, ganz ohne monatliche Sparrate.`);
+    const diff=z.need-z.M;
+    return alert(diff<=0?'info':'warn',`Dafür brauchst du <b>${esc(fmt(z.need,'eur'))}</b> im Monat. ${diff<=0?'Mit deiner Sparrate erreichst du das Ziel.':`Das sind ${esc(fmt(diff,'eur'))} mehr als deine jetzige Sparrate.`}`);
+  },
+  zinsTbl(){
+    const {P,M,r,Y,infl}=R.z; const rows=[]; const stp=Y<=10?1:Y<=30?5:10;
+    const ys=[]; for(let y=stp;y<Y;y+=stp) ys.push(y); if (Y>0) ys.push(Y);
+    ys.forEach(y=>{ const e=fv(P,M,r,y), d=P+12*M*y; rows.push(`<tr><td>${y} J.</td><td>${esc(fmt(d,'eur0'))}</td><td>${esc(fmt(e-d,'eur0'))}</td><td>${esc(fmt(e,'eur0'))}</td><td>${esc(fmt(e/Math.pow(1+infl,y),'eur0'))}</td></tr>`); });
+    return `<table><thead><tr><th>Nach</th><th>Eingezahlt</th><th>Erträge</th><th>Kapital</th><th>Kaufkraft</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
+  },
+};
+function niceStep(x){ if(x<=0) return 1; const p=Math.pow(10,Math.floor(Math.log10(x))); const m=x/p; return (m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*p; }
+function short(v){ const a=Math.abs(v); if(a>=1e6) return nfN1.format(v/1e6)+' Mio'; if(a>=1e4) return nfN1.format(v/1e3)+' Tsd'; return nfN2.format(Math.round(v)); }
+
+/* ================= Navigation ================= */
+const UI = {pinOk:false, pin:null, bkErr:'', notice:'', expMsg:'', tab:'uebersicht', sub:null, edit:null, back:null, zReal:false, zH:0, confirm:null, backup:'', importMsg:'', importErr:'', pwMsg:'', pwErr:'', anim:false, dir:'', scroll:{}};
+const TABS = [['uebersicht','Übersicht','home'],['budget','Budget','wallet'],['sparen','Sparen','piggy'],['vermoegen','Vermögen','pie'],['mehr','Mehr','grid']];
+const SUBS = {rendite:'Rendite', gehalt:'Gehalt', zins:'Zinseszins', miete:'Mietrechner', export:'Exportieren', sicherheit:'Sicherheit & Daten'};
+const TABNAME = Object.fromEntries(TABS.map(t=>[t[0],t[1]]));
+
+function renderChrome(){
+  $('#tabs').innerHTML = TABS.map(([k,l,ic])=>`<button class="tab" type="button" data-tab="${k}" ${UI.tab===k?'aria-current="page"':''}>${svg(ic,24,1.8)}${l}</button>`).join('');
+  $('#tabbar').hidden = !!UI.edit;
+  let left='', right='';
+  const lockB = '';
+  const status = `<span id="saveStatus" class="status"><i></i>Verschlüsselt gespeichert</span>`;
+  if (UI.edit){
+    left = `<button class="navbtn" type="button" data-act="closeEdit">${svg('back',20,2.4)}${esc(UI.edit.backLabel||'Zurück')}</button>`;
+    right = `<button class="navbtn done" type="button" data-act="closeEdit">Fertig</button>`;
+  } else if (UI.tab==='mehr' && UI.sub){
+    left = `<button class="navbtn" type="button" data-act="backSub">${svg('back',20,2.4)}Mehr</button>`; right=lockB;
+  } else { left=status; right=lockB; }
+  $('#topbar').innerHTML = left + '<span class="spacer"></span>' + right;
+}
+function render(){
+  try {
+    compute();
+    const v = UI.edit ? 'editor' : (UI.tab==='mehr' && UI.sub ? UI.sub : UI.tab);
+    $('#view').innerHTML = `<div class="page ${UI.dir}">${UI.notice?alert('info',esc(UI.notice),'<button class="btn small act" type="button" data-act="clearNotice">Okay</button>'):''}${(VIEWS[v]||VIEWS.uebersicht)()}</div>`;
+    UI.dir='';
+    renderChrome(); refresh(); UI.anim=false;
+  } catch(e){ showError(e); }
+}
+function showError(e){
+  try { renderChrome(); } catch(x){}
+  $('#view').innerHTML = `<div class="page"><div class="ph"><div><h1>Anzeigefehler</h1></div></div>
+    ${alert('bad','Dein Passwort war richtig und deine Daten sind da. Beim Anzeigen dieses Bereichs ist aber ein Fehler aufgetreten. Mach bitte einen Screenshot und schick ihn mir.')}
+    <textarea class="code" readonly>${esc((e&&(e.stack||e.message))||String(e))}</textarea>
+    <button class="btn primary" type="button" data-act="backupFile">Backup als Datei sichern</button>
+    <button class="btn" type="button" data-act="goHome">Zur Übersicht</button>
+    <p class="note-txt">Andere Bereiche funktionieren eventuell trotzdem, probier die Tabs unten.</p></div>`;
+}
+function refresh(){
+  try { refreshInner(); } catch(e){ console.error(e); }
+}
+function refreshInner(){
+  compute();
+  document.querySelectorAll('#view [data-k]').forEach(el=>{ const f=F[el.dataset.k]; if(!f) return; el.textContent=f.t; el.classList.toggle('neg',f.neg); });
+  document.querySelectorAll('#view [data-chart]').forEach(el=>{ const fn=CH[el.dataset.chart]; if(fn) el.innerHTML=fn(); });
+  document.querySelectorAll('#view input[type=range]').forEach(el=>{ const mn=+el.min, mx=+el.max; el.style.setProperty('--p',((+el.value-mn)/(mx-mn)*100).toFixed(2)+'%'); });
+}
+const curKey = () => UI.tab+'/'+(UI.sub||'');
+function go(tab,sub=null){ UI.scroll[curKey()]=scrollY; UI.tab=tab; UI.sub=sub; UI.edit=null; UI.confirm=null; UI.dir=sub?'push':''; render(); scrollTo(0,0); }
+function openEdit(e){ if (e.k==='pin') UI.pin=null; UI.scroll[curKey()]=scrollY; UI.edit=e; UI.confirm=null; UI.dir='push'; render(); scrollTo(0,0); }
+function closeEdit(){ UI.edit=null; UI.confirm=null; UI.dir='pop'; render(); scrollTo(0,UI.scroll[curKey()]||0); }
+
+/* ================= Ansichten ================= */
+const VIEWS = {
+uebersicht(){
+  const dt = fmtDate(S.stand);
+  return `
+  <div class="ph"><div><h1>Übersicht</h1><div class="sub"><button type="button" data-edit='{"k":"stand"}'>${dt?`Stand ${esc(dt)}`:'Stand festlegen'}</button></div></div></div>
+  ${backupBanner()}
+  ${S.beispiel?alert('info','Das sind Beispielwerte. Importiere deine Daten unter Mehr, Sicherheit &amp; Daten, oder tippe Einträge an und ändere sie.',`<button class="btn small act" type="button" data-act="dismissDemo">Okay</button>`):''}
+  <div data-chart="lede"></div>
+  <div data-chart="ribbon"></div>
+  <div data-chart="warn"></div>
+
+  <div class="tiles">
+    <button class="tile" type="button" data-go="budget"><span class="k">Netto im Monat</span><span class="n">${o('netto')}</span></button>
+    <button class="tile" type="button" data-go="sparen"><span class="k">Sparquote</span><span class="n">${o('sparQ')}</span></button>
+  </div>
+
+  <div class="sh"><h2>Ausgaben</h2><span class="r">${o('ausg')} <small>im Monat</small></span></div>
+  <div class="list">
+    ${S.budget.map((g,gi)=>li({go:'budget',icon:icBox(g.name,GCOL[gi%5],['house','sparkle','layers'][gi]||'layers'),t:esc(g.name),s:`${o(`b${gi}p`)} vom Netto<span class="minibar" style="--c:${GCOL[gi%5]}"><i style="width:${Math.min(100,(R.N?R.groups[gi]/R.N:0)*100).toFixed(1)}%"></i></span>`,v:o(`b${gi}sum`)})).join('')}
+  </div>
+
+  <div class="sh"><h2>Sparplan</h2><span class="r">${o('spar')} <small>im Monat</small></span></div>
+  <div class="tiles">
+    <button class="tile" type="button" data-go="sparen">${icBox('',SAVE,'trend')}<span class="k">ETF</span><span class="n">${o('sETF')}</span></button>
+    <button class="tile" type="button" data-go="sparen">${icBox('','var(--blue)','coins')}<span class="k">Tagesgeld</span><span class="n">${o('sTG')}</span></button>
+    <button class="tile" type="button" data-go="sparen">${icBox('','var(--violet)','umbrella')}<span class="k">Altersvorsorge</span><span class="n">${o('sAV')}</span></button>
+    <button class="tile" type="button" data-go="sparen">${icBox('','var(--ochre)','house')}<span class="k">Bausparer</span><span class="n">${o('sBS')}</span></button>
+  </div>
+
+  <div class="sh"><h2>Vermögen</h2></div>
+  <div class="list">
+    ${li({go:'vermoegen',icon:icBox('',SAVE,'pie'),t:'Gesamtvermögen',v:o('vTot')})}
+    ${li({go:'rendite',icon:icBox('','var(--orange)','percent'),t:'Gewichtete Rendite',s:`nach Inflation ${o('rReal')}`,v:o('rGew'),vs:'im Jahr'})}
+  </div>`;
+},
+
+budget(){
+  return `
+  <div class="ph"><div><h1>Budget</h1><div class="sub">Alle Beträge auf den Monat umgerechnet</div></div></div>
+  <div class="list">
+    ${li({edit:{k:'netto'},icon:icBox('',SAVE,'briefcase'),t:esc(S.netto.label||'Nettoeinkommen'),s:'Netto im Monat',v:o('netto')})}
+    ${li({icon:icBox('','var(--blue)','wallet'),t:'Ausgaben',s:`${o('ausgP')} vom Netto`,v:o('ausg'),vs:`${o('ausgJ')} im Jahr`})}
+    ${li({icon:icBox('',SAVE,'piggy'),t:'Bleibt übrig',s:`${o('restP')} vom Netto`,v:o('rest'),cls:'total'})}
+  </div>
+  ${S.budget.map((g,gi)=>`
+    <div class="sh"><h2>${esc(g.name)}</h2><span class="r">${o(`b${gi}sum`)} <small>${o(`b${gi}p`)}</small></span></div>
+    <div class="list">
+      ${g.items.map((it,ii)=>li({edit:{k:'budget',gi,ii},icon:icBox(it.name,GCOL[gi%5]),t:esc(it.name||'Ohne Namen'),s:it.freq==='Monatlich'?'monatlich':`${esc(fmt(num(it.betrag),'eur'))} ${FWORD[it.freq]||''}`,v:o(`b${gi}i${ii}m`),vs:'im Monat'})).join('') || `<div class="empty">Noch nichts eingetragen.</div>`}
+      ${addLi('addBudget','Ausgabe hinzufügen',`data-gi="${gi}"`)}
+    </div>`).join('')}`;
+},
+
+sparen(){
+  const sl = (path,max,label,sub,color) => `
+    <div class="ctl">
+      <div class="ctl-h"><span><b>${label}</b><small>${sub}</small></span><span class="pctin"><input id="${pid(path)}" data-p="${path}" data-t="pct" inputmode="decimal" value="${esc(fmtIn(num(getP(S,path))*100))}" aria-label="${esc(label)} in Prozent" autocomplete="off"><span>%</span></span></div>
+      <input type="range" id="${pid(path)}-r" data-p="${path}" data-t="range" min="0" max="${max}" step="0.0005" value="${num(getP(S,path))}" style="--c:${color}" aria-label="${esc(label)}">
+    </div>`;
+  return `
+  <div class="ph"><div><h1>Sparen</h1><div class="sub">Deine Anlagestrategie</div></div></div>
+  <div data-chart="savelede"></div>
+  <div data-chart="warn"></div>
+  <div class="list flow" data-chart="flow"></div>
+
+  <div class="sh"><h2>Einstellen</h2></div>
+  <div class="list">
+    ${sl('sparen.av',0.3,'Altersvorsorge','Anteil vom Netto','var(--violet)')}
+    ${sl('sparen.bs',0.2,'Bausparer','Anteil vom Netto','var(--ochre)')}
+    <div class="ctl">
+      <div class="ctl-h"><span><b>Aufteilung der Anlage</b><small>Was nach Ausgaben und Vorsorge frei ist</small></span></div>
+      <input type="range" class="split" id="i-sparen-split" data-p="sparen.etf" data-t="split" min="0" max="1" step="0.01" value="${num(S.sparen.etf)}" aria-label="Anteil ETF">
+      <div class="ends"><span>ETF <b>${o('etfP')}</b></span><span>Tagesgeld <b>${o('tgP')}</b></span></div>
+    </div>
+  </div>
+  <div data-chart="etfWarn"></div>
+
+  <div class="sh"><h2>Pro Monat</h2><span class="r">${o('spar')}</span></div>
+  <div class="tiles">
+    <div class="tile">${icBox('',SAVE,'trend')}<span class="k">Vermögens-ETF</span><span class="n">${o('sETF')}</span><span class="k">${o('sETFp')} vom Netto</span></div>
+    <div class="tile">${icBox('','var(--blue)','coins')}<span class="k">Tagesgeld</span><span class="n">${o('sTG')}</span><span class="k">${o('sTGp')} vom Netto</span></div>
+    <div class="tile">${icBox('','var(--violet)','umbrella')}<span class="k">Altersvorsorge</span><span class="n">${o('sAV')}</span><span class="k">${o('sAVp')} vom Netto</span></div>
+    <div class="tile">${icBox('','var(--ochre)','house')}<span class="k">Bausparer</span><span class="n">${o('sBS')}</span><span class="k">${o('sBSp')} vom Netto</span></div>
+  </div>
+  <div data-chart="zeitnah"></div>
+
+  <div class="sh"><h2>Faustregeln</h2><span class="r"><small>Theorie und dein Stand</small></span></div>
+  <div class="list" data-chart="rules"></div>
+  <p class="note-txt">Faustregeln sind eine Orientierung, keine Anlageberatung.</p>`;
+},
+
+vermoegen(){
+  return `
+  <div class="ph"><div><h1>Vermögen</h1><div class="sub">Wie dein Geld verteilt ist</div></div></div>
+  <div class="card" data-chart="donut"></div>
+  ${S.vermoegen.groups.map((g,gi)=>{
+    const col=VCOL[gi%5], hasZ = g.ziel!=='' && g.ziel!=null, p = R.vTot?R.vGroups[gi]/R.vTot:0;
+    return `
+    <div class="sh"><h2>${esc(g.name)}</h2><span class="r">${o(`v${gi}sum`)} <small>${o(`v${gi}p`)}</small></span></div>
+    <div class="list">
+      ${hasZ?`<button class="li noicon" type="button" data-edit='${JSON.stringify({k:'vgroup',gi})}' style="--c:${col}"><span class="t"><b style="font-weight:500;font-size:14.5px">Ziel ${o(`v${gi}z`)}, aktuell ${o(`v${gi}p`)}</b><span class="target"><i style="width:${Math.min(100,p*100).toFixed(1)}%"></i><b style="left:calc(${Math.min(100,num(g.ziel)*100).toFixed(1)}% - 1.5px)"></b></span><small>${F[`v${gi}abw`].n>=0?'Über':'Unter'} dem Ziel: ${esc(fmt(Math.abs(F[`v${gi}abw`].n),'eur'))}</small></span><span class="chev">${svg('chev',16,2.2)}</span></button>`
+        : `<button class="li noicon" type="button" data-edit='${JSON.stringify({k:'vgroup',gi})}'><span class="t"><small style="margin:0">Kein Ziel-Anteil festgelegt</small></span><span class="v" style="color:var(--accent);font:600 15px var(--font)">Ziel festlegen</span></button>`}
+      ${g.items.map((it,ii)=>li({edit:{k:'verm',gi,ii},icon:icBox(it.name,col),t:esc(it.name||'Ohne Namen'),s:`${o(`v${gi}i${ii}p`)} vom Ganzen`,v:o(`v${gi}i${ii}w`)})).join('') || `<div class="empty">Noch nichts eingetragen.</div>`}
+      ${addLi('addVerm','Position hinzufügen',`data-gi="${gi}"`)}
+    </div>`;}).join('')}`;
+},
+
+mehr(){
+  const t=(k,ic,c,title,val)=>`<button class="tile" type="button" data-sub="${k}">${icBox('',c,ic)}<span class="k">${title}</span><span class="n">${val}</span></button>`;
+  const g0=S.gehalt[0];
+  return `
+  <div class="ph"><div><h1>Mehr</h1></div></div>
+  <div class="tiles">
+    ${t('rendite','percent','var(--orange)','Rendite',o('rGew'))}
+    ${t('gehalt','briefcase',SAVE,'Gehalt',g0?o('g0n'):'–')}
+    <button class="tile full" type="button" data-sub="zins">${icBox('','var(--violet)','growth')}<span style="flex:1;min-width:0"><span class="k" style="display:block">Zinseszins-Rechner</span><span class="n">${o('zEnd')}<small> nach ${o('zY')} Jahren</small></span></span><span class="chev" style="color:var(--faint)">${svg('chev',16,2.2)}</span></button>
+    <button class="tile full" type="button" data-sub="miete">${icBox('','var(--red)','house')}<span style="flex:1;min-width:0"><span class="k" style="display:block">Mietrechner${S.miete.notiz?`, ${esc(S.miete.notiz)}`:''}</span><span class="n">bis ${o('mMax')}<small> warm im Monat</small></span></span><span class="chev" style="color:var(--faint)">${svg('chev',16,2.2)}</span></button>
+  </div>
+  <div class="list">
+    ${li({go:'export',icon:icBox('','var(--blue)','share'),t:'Exportieren',s:'Als PDF oder CSV für Excel'})}
+    ${li({go:'sicherheit',icon:icBox('','var(--grey)','lock'),t:'Sicherheit &amp; Daten',s:'Backup, Import, Passwort, Auto-Sperre'})}
+  </div>`;
+},
+
+miete(){
+  const M_=S.miete, n1=esc(M_.p1.name||'Person 1'), n2=esc(M_.p2.name||'Person 2');
+  return `
+  <div class="ph"><div><h1>Mietrechner</h1><div class="sub"><button type="button" data-edit='{"k":"mieteNotiz"}'>${M_.notiz?esc(M_.notiz):'Zeitpunkt festlegen'}</button></div></div></div>
+  <div data-chart="mieteLede"></div>
+
+  <div class="sh"><h2>Einkommen netto</h2><span class="r">${o('mNt')} <small>gemeinsam</small></span></div>
+  <div class="list">
+    ${li({edit:{k:'person',n:1},icon:icBox('',SAVE,'briefcase'),t:n1,s:`Anteil ${o('mS1')}`,v:o('mN1'),vs:'im Monat'})}
+    ${li({edit:{k:'person',n:2},icon:icBox('','var(--blue)','briefcase'),t:n2,s:`Anteil ${o('mS2')}`,v:o('mN2'),vs:'im Monat'})}
+  </div>
+
+  <div class="list">
+    <div class="ctl">
+      <div class="ctl-h"><span><b>Höchstens fürs Wohnen</b><small>Faustregel: nicht mehr als 30 % vom Netto</small></span><span class="pctin"><input id="i-miete-quote" data-p="miete.quote" data-t="pct" inputmode="decimal" value="${esc(fmtIn(num(M_.quote)*100))}" aria-label="Anteil in Prozent" autocomplete="off"><span>%</span></span></div>
+      <input type="range" id="i-miete-quote-r" data-p="miete.quote" data-t="range" min="0.15" max="0.45" step="0.005" value="${num(M_.quote)}" style="--c:var(--red)" aria-label="Anteil fürs Wohnen">
+    </div>
+  </div>
+
+  <div class="sh"><h2>Aufteilung nach Einkommen</h2></div>
+  <div class="list">
+    ${li({icon:icBox('',SAVE,'people'),t:n1,s:`zahlt ${o('mS1')} der Miete`,v:o('mP1')})}
+    ${li({icon:icBox('','var(--blue)','people'),t:n2,s:`zahlt ${o('mS2')} der Miete`,v:o('mP2')})}
+    ${li({t:'Zum Vergleich: halbe-halbe',s:'jede Person',v:o('mHalf')})}
+  </div>
+
+  <div class="sh"><h2>Konkrete Wohnung prüfen</h2></div>
+  <div class="form">
+    ${row('Warmmiete der Wohnung',fld('miete.geplant','numo',{w:'w2',ph:'optional'}),'Inklusive Nebenkosten')}
+  </div>
+  <div data-chart="mietePlan"></div>
+  <p class="note-txt">Gerechnet mit dem Netto, das ihr zum Einzug erwartet. Zum Vergleich allein wohnend: ${n1} bis ${o('mSolo1')}, ${n2} bis ${o('mSolo2')}.</p>`;
+},
+
+rendite(){
+  const nameOf = id => { for (const g of S.vermoegen.groups) for (const i of g.items) if (i.id===id) return i.name; return null; };
+  return `
+  <div class="ph"><div><h1>Rendite</h1><div class="sub">Gewichtet nach deinem Vermögen</div></div></div>
+  <p class="lede">Dein Vermögen bringt im Schnitt <b class="c-free">${o('rGew')}</b> im Jahr. Nach Inflation bleiben <b>${o('rReal')}</b>.</p>
+  <div class="tiles">
+    <div class="tile"><span class="k">Nach Kosten</span><span class="n">${o('rNetto')}</span></div>
+    <button class="tile" type="button" data-edit='{"k":"inflation"}'><span class="k">Inflation (antippen)</span><span class="n">${o('rInfl')}</span></button>
+  </div>
+  <div data-chart="rAnteile"></div>
+  <div class="sh"><h2>Anlagen</h2><span class="r"><small>Kosten gewichtet</small> ${o('rKosten')}</span></div>
+  <div class="list">
+    ${S.rendite.rows.map((r,ri)=>{ const n=nameOf(r.ref); return li({edit:{k:'rendite',ri},icon:icBox(r.name,'var(--orange)'),t:esc(r.name||'Ohne Namen'),s:n?`${o(`r${ri}a`)} vom Vermögen (${esc(n)})`:'nicht mit dem Vermögen verknüpft',v:o(`r${ri}r`),vs:`Kosten ${o(`r${ri}k`)}`}); }).join('')}
+    ${addLi('addRendite','Anlage hinzufügen')}
+  </div>`;
+},
+
+gehalt(){
+  return `
+  <div class="ph"><div><h1>Gehalt</h1><div class="sub">Szenarien im Vergleich</div></div></div>
+  ${S.gehalt.length>1?`<p class="lede">„${esc(S.gehalt[1].name)}“ bringt dir <b class="${F.g1dn&&F.g1dn.n<0?'neg':'c-save'}">${o('g1dn')}</b> netto im Monat ${F.g1dn&&F.g1dn.n<0?'weniger':'mehr'}.</p>`:''}
+  ${S.gehalt.map((g,i)=>`
+  <div class="sh"><h2>${esc(g.name||'Szenario')}</h2><span class="r">${o(`g${i}hw`)} <small>pro Woche</small></span></div>
+  <div class="list">
+    ${li({edit:{k:'gehalt',i},icon:icBox('',SAVE,'briefcase'),t:'Netto im Monat',s:`Brutto ${o(`g${i}b`)}`,v:o(`g${i}n`),vs:`${o(`g${i}q`)} vom Brutto`})}
+    ${li({icon:icBox('','var(--blue)','calendar'),t:'Im Jahr',s:`Brutto ${o(`g${i}bj`)}`,v:o(`g${i}nj`),vs:'netto'})}
+    ${li({icon:icBox('','var(--orange)','growth'),t:'Pro Stunde',s:`Brutto ${o(`g${i}bh`)}, ${o(`g${i}hm`)} im Monat`,v:o(`g${i}nh`),vs:'netto'})}
+    <div class="li static noicon"><span class="t"><small style="margin:0">Als Einkommen im Budget verwenden</small></span><button class="btn small" type="button" data-act="useNetto" data-i="${i}">Übernehmen</button></div>
+  </div>`).join('')}
+  <div class="list">${addLi('addGehalt','Szenario hinzufügen')}</div>
+  <p class="note-txt">Stunden pro Monat wie in deiner Excel: Wochenstunden mal 4.</p>`;
+},
+
+zins(){
+  const z=S.zins;
+  const preset=(label,v)=>`<button class="chip" type="button" data-act="zRendite" data-v="${v}" aria-pressed="${Math.abs(num(z.rendite)-v)<1e-9}">${label}</button>`;
+  return `
+  <div class="ph"><div><h1>Zinseszins</h1><div class="sub">Was aus regelmäßigem Sparen werden kann</div></div></div>
+  <div data-chart="zinsLede"></div>
+  <div class="form">
+    ${row('Startkapital',fld('zins.start','num',{w:'w2'}))}
+    ${row('Sparrate im Monat',fld('zins.rate','num',{w:'w2'}))}
+    ${row('Rendite im Jahr',fld('zins.rendite','pct'))}
+  </div>
+  <div class="chips">${preset('Tagesgeld 2 %',0.02)}${preset('Anleihen 3,5 %',0.035)}${preset('Mischfonds 5 %',0.05)}${preset('Aktien-ETF 7 %',0.07)}${R.rGew>0?preset('Deine Rendite '+esc(fmt(R.rGew,'pct')),Math.round(R.rGew*1e6)/1e6):''}</div>
+  <div class="list">
+    <div class="ctl">
+      <div class="ctl-h"><span><b>Laufzeit</b><small>in Jahren</small></span><span class="pctin"><input id="i-zins-jahre" data-p="zins.jahre" data-t="int" inputmode="numeric" value="${esc(fmtIn(num(z.jahre)))}" aria-label="Laufzeit in Jahren" autocomplete="off"><span>J.</span></span></div>
+      <input type="range" id="i-zins-jahre-r" data-p="zins.jahre" data-t="range" min="1" max="50" step="1" value="${num(z.jahre)}" style="--c:var(--green)" aria-label="Laufzeit">
+    </div>
+  </div>
+  <div class="tiles">
+    <div class="tile"><span class="k">Kapital am Ende</span><span class="n">${o('zEnd')}</span></div>
+    <div class="tile"><span class="k">Eingezahlt</span><span class="n">${o('zDep')}</span></div>
+    <div class="tile"><span class="k">Zinsen und Erträge</span><span class="n">${o('zGain')}</span><span class="k">${o('zGainShare')} vom Kapital</span></div>
+    <div class="tile"><span class="k">In heutiger Kaufkraft</span><span class="n">${o('zReal')}</span><span class="k">bei ${o('zInfl')} Inflation</span></div>
+  </div>
+  <div class="sh"><h2>Entwicklung</h2><span class="seg" role="group" aria-label="Darstellung"><button type="button" data-act="zReal" data-v="0" aria-pressed="${!UI.zReal}">Nominal</button><button type="button" data-act="zReal" data-v="1" aria-pressed="${UI.zReal}">Kaufkraft</button></span></div>
+  <div class="card chart" data-chart="zins"></div>
+
+  <div class="sh"><h2>Sparziel</h2></div>
+  <div class="form">
+    ${row('Wunschbetrag',fld('zins.ziel','numo',{w:'w2',ph:'optional'}),'Wie viel möchtest du am Ende haben?')}
+    ${row('Inflation im Jahr',fld('zins.inflation','pct'),'Für die Kaufkraft')}
+  </div>
+  <div data-chart="zinsZiel"></div>
+
+  <details class="more"><summary>Jahr für Jahr als Tabelle</summary>
+    <div class="list tbl-wrap" data-chart="zinsTbl"></div>
+  </details>
+  <p class="note-txt">Verzinsung monatlich, Sparrate am Monatsende, Erträge werden wieder angelegt. Steuern und Kosten sind nicht berücksichtigt.</p>`;
+},
+
+export(){
+  return `
+  <div class="ph"><div><h1>Exportieren</h1><div class="sub">Deine Zahlen als Datei</div></div></div>
+  <div class="tiles">
+    <button class="tile" type="button" data-act="exportPdf">${icBox('','var(--red)','doc')}<span class="n" style="font-size:19px">PDF</span><span class="k">Übersicht zum Lesen, Drucken oder Weitergeben</span></button>
+    <button class="tile" type="button" data-act="exportCsv">${icBox('',SAVE,'table')}<span class="n" style="font-size:19px">CSV</span><span class="k">Tabelle für Excel oder Numbers</span></button>
+  </div>
+  ${UI.expMsg?alert('info',esc(UI.expMsg)):''}
+  ${alert('warn','Exportierte Dateien sind <b>nicht verschlüsselt</b>. Speichere sie nur an sicheren Orten und lösch sie, wenn du sie nicht mehr brauchst.')}
+  <p class="note-txt">Enthalten sind Übersicht, Budget, Sparplan, Vermögen und Rendite. Gehalt, Mietrechner und Zinseszins-Rechner bleiben in der App. Die CSV nutzt Semikolon und Dezimalkomma, so öffnet sie sich in Excel und Numbers direkt richtig.</p>`;
+},
+
+sicherheit(){
+  const L = LOCKS || {};
+  const how = L.prf ? 'Face ID (Passkey) und Wiederherstellungscode' : L.gate ? 'Face ID als Sperre und Wiederherstellungscode' : 'Direkt auf diesem Gerät, Wiederherstellungscode als Notfallschlüssel';
+  const lb = num(S.settings.lastBackup||0);
+  return `
+  <div class="ph"><div><h1>Sicherheit &amp; Daten</h1></div></div>
+  <div class="list">
+    ${li({icon:icBox('',SAVE,'shield'),t:'Verschlüsselt',s:'AES‑256, nur auf diesem Gerät gespeichert'})}
+    ${li({icon:icBox('','var(--blue)','lock'),t:'Entsperren',s:how})}
+    ${li({icon:icBox('','var(--grey)','info'),t:'Version',s:'Web-App '+WEBVER})}
+  </div>
+  ${!(L.prf||L.gate) ? `<div class="list stack"><p>Mit Face ID öffnet nur noch dein Gesicht die App. Dein iPhone legt dafür einen Passkey im iCloud-Schlüsselbund an.</p>
+     ${UI.fid ? `<button class="btn primary" type="button" data-act="fidConfirm">Face ID bestätigen</button>` : `<button class="btn primary" type="button" data-act="setupFaceId">Face ID einrichten</button>`}
+     ${UI.fidErr?alert('bad',esc(UI.fidErr)):''}</div>` : ''}
+
+  <div class="sh"><h2>Sicherung</h2><span class="r"><small>${lb?'zuletzt '+esc(new Date(lb).toLocaleDateString('de-DE')):'noch keine'}</small></span></div>
+  <div class="list stack">
+    <p>Die Sicherung ist eine verschlüsselte Datei. Du öffnest sie mit Face ID oder deinem Wiederherstellungscode, auch auf einem neuen iPhone oder unter Android. Leg sie in der Dateien-App ab, am besten in iCloud Drive.</p>
+    <button class="btn primary" type="button" data-act="backupFile">Sicherung in Dateien speichern</button>
+    <button class="btn" type="button" data-act="restoreOpen">Sicherung öffnen</button>
+    <input id="restoreIn" type="file" accept=".json,application/json,text/plain" hidden>
+  </div>
+
+  <div class="sh"><h2>Wiederherstellungscode</h2></div>
+  <div class="list stack">
+    ${UI.newCode ? `<p><b>Dein neuer Code.</b> Schreib ihn auf. Der alte Code gilt ab jetzt nicht mehr, ältere Sicherungen öffnest du aber weiterhin mit ihrem alten Code.</p><div class="rcode">${fmtCode(UI.newCode)}</div><button class="btn" type="button" data-act="recDone">Ich habe ihn notiert</button>`
+      : `<p>Hast du den Code verloren? Erstelle einen neuen. Danach solltest du auch eine neue Sicherung speichern.</p><button class="btn" type="button" data-act="newRecovery">Neuen Code erstellen</button>`}
+  </div>
+
+  <div class="sh"><h2>Daten importieren</h2></div>
+  <div class="list stack">
+    <p>Deine Excel-Daten (.json) oder eine alte Sicherung aus der Scriptable-Version (beginnt mit „FPB1.“). Der Import ersetzt alle aktuellen Daten.</p>
+    <input id="impFile" type="file" accept=".txt,.json,text/plain,application/json">
+    <label class="sr" for="impText">Daten</label>
+    <textarea id="impText" class="code" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="… oder Text hier einfügen"></textarea>
+    <label class="sr" for="impPw">Passwort der alten Sicherung</label>
+    <input id="impPw" type="text" class="masked" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Passwort (nur bei alten FPB1-Sicherungen)">
+    <button class="btn primary" type="button" data-act="import">Importieren</button>
+    ${UI.importErr?alert('bad',esc(UI.importErr)):''}
+    ${UI.importMsg?alert('info',esc(UI.importMsg)):''}
+  </div>
+
+  <div class="sh"><h2>Alle Daten löschen</h2></div>
+  <div class="list stack">
+    <p>Löscht deine Daten von diesem Gerät. Deine Sicherungsdateien bleiben, wo sie sind. Tippe zur Bestätigung LÖSCHEN ein.</p>
+    <label class="sr" for="wipeIn">Bestätigung</label><input id="wipeIn" type="text" autocomplete="off" autocapitalize="characters" placeholder="LÖSCHEN">
+    <button class="btn danger" type="button" data-act="wipe">Endgültig löschen</button>
+  </div>`;
+},
+
+/* ---------- Bearbeiten-Seiten ---------- */
+editor(){
+  const e=UI.edit; const E=EDITORS[e.k]; return E ? E(e) : '';
+},
+};
+
+const delBtn = (label,key) => { const on=UI.confirm===key; return `<button class="btn ${on?'danger':''} wide" style="${on?'':'background:var(--surface);color:var(--neg)'}" type="button" data-act="${on?'doDelete':'arm'}" data-key="${key}">${on?'Wirklich löschen? Nochmal tippen':esc(label)}</button>`; };
+const amount = (path,unitText,outHtml='') => `<div class="ed-amount"><label class="sr" for="${pid(path)}">Betrag</label><input id="${pid(path)}" data-p="${path}" data-t="num" inputmode="decimal" value="${esc(fmtIn(num(getP(S,path))))}" autocomplete="off"><span class="u">${unitText}</span>${outHtml?`<div class="out">${outHtml}</div>`:''}</div>`;
+const nameField = (path,ph='Bezeichnung') => `<label class="sr" for="${pid(path)}">${ph}</label><input class="ed-name" id="${pid(path)}" data-p="${path}" data-t="text" value="${esc(getP(S,path))}" placeholder="${esc(ph)}" autocomplete="off" autocorrect="off" spellcheck="false">`;
+
+const EDITORS = {
+  pin(){
+    const P = UI.pin || (UI.pin = {}); const DEF={action:null, step:null, entry:'', first:'', msg:'', err:'', bad:false}; for (const k in DEF) if (P[k]===undefined) P[k]=DEF[k];
+    const dots = `<div class="pdots${P.bad?' shake':''}" style="justify-content:center;margin:8px auto 0">${[0,1,2,3].map(i=>`<i class="${i<P.entry.length?'on':''}"></i>`).join('')}</div>`;
+    const pad = `<div class="pad" style="margin:6px auto 0">${['1','2','3','4','5','6','7','8','9','','0','del'].map(k=> k==='' ? '<span></span>' : k==='del' ? '<button type="button" class="fn" data-act="pk" data-v="del">Löschen</button>' : `<button type="button" data-act="pk" data-v="${k}">${k}</button>`).join('')}</div>`;
+    if (!P.action){
+      return `<div class="ph"><div><h1>Code-Sperre</h1><div class="sub">${pinOn()?'Ist eingeschaltet':'Ist ausgeschaltet'}</div></div></div>
+      <p class="lede-sm">Mit Code fragt die App beim Öffnen und nach mehr als einer Minute im Hintergrund nach deinen 4 Ziffern. Fünf falsche Versuche sperren die Eingabe kurz.</p>
+      ${P.msg?alert('info',esc(P.msg)):''}
+      ${pinOn() ? `<button class="btn primary wide" type="button" data-act="pinStart" data-v="change">Code ändern</button><button class="btn danger wide" type="button" data-act="pinStart" data-v="remove">Code ausschalten</button>`
+                : `<button class="btn primary wide" type="button" data-act="pinStart" data-v="set">Code festlegen</button>`}
+      <p class="note-txt">Wichtig: Einen vergessenen Code kann niemand zurücksetzen. Dann hilft nur ein Backup. Für Face ID halte das Scriptable-Symbol gedrückt und wähle „Face ID erforderlich“.</p>`;
+    }
+    const title = {cur:'Aktuellen Code eingeben', neu:'Neuen Code eingeben', confirm:'Neuen Code wiederholen'}[P.step];
+    return `<div class="ph"><div><h1>${title}</h1><div class="sub">4 Ziffern</div></div></div>
+      ${dots}<p class="pinmsg${P.bad?' bad':''}" style="margin-top:10px">${esc(P.err||'')}</p>${pad}
+      <button class="btn ghost" type="button" data-act="pinCancel" style="align-self:center">Abbrechen</button>`;
+  },
+  stand(){ return `<div class="ph"><div><h1>Stand</h1><div class="sub">Datum, auf das sich deine Zahlen beziehen</div></div></div><div class="form">${row('Datum',fld('stand','date',{w:'w2',unit:''}))}</div>`; },
+  netto(){ return `<div class="ph"><div><h1>Einkommen</h1></div></div>${amount('netto.betrag','Euro netto im Monat',`${o('nettoJ')} im Jahr`)}<div class="lbl">Bezeichnung</div>${nameField('netto.label','z. B. Gehalt')}
+    ${S.gehalt.length?`<div class="lbl">Aus einem Gehalts-Szenario übernehmen</div><div class="chips">${S.gehalt.map((g,i)=>`<button class="chip" type="button" data-act="useNetto" data-i="${i}">${esc(g.name)}: ${esc(fmt(num(g.netto),'eur'))}</button>`).join('')}</div>`:''}`; },
+  budget(e){
+    const g=S.budget[e.gi], it=g&&g.items[e.ii]; if(!it) return '';
+    const p=`budget.${e.gi}.items.${e.ii}`;
+    return `<div class="ph"><div><h1>${esc(it.name||'Ausgabe')}</h1><div class="sub">${esc(g.name)}</div></div></div>
+    ${amount(p+'.betrag','Euro '+(FWORD[it.freq]||''),`= ${o(`b${e.gi}i${e.ii}m`)} im Monat, ${o(`b${e.gi}i${e.ii}p`)} vom Netto`)}
+    <div class="lbl">Wie oft?</div>
+    <div class="chips">${Object.keys(FREQ).map(k=>`<button class="chip" type="button" data-act="setFreq" data-v="${k}" aria-pressed="${it.freq===k}">${k}</button>`).join('')}</div>
+    <div class="lbl">Bezeichnung</div>${nameField(p+'.name')}
+    <div class="lbl">Bereich</div>
+    <div class="chips">${S.budget.map((b,i)=>`<button class="chip" type="button" data-act="moveGroup" data-v="${i}" aria-pressed="${i===e.gi}">${esc(b.name)}</button>`).join('')}</div>
+    <div style="margin-top:14px">${delBtn('Ausgabe löschen','b')}</div>`;
+  },
+  person(e){
+    const k=e.n===1?'p1':'p2', P=S.miete[k];
+    return `<div class="ph"><div><h1>${esc(P.name||('Person '+e.n))}</h1><div class="sub">Netto zum Einzug</div></div></div>
+    ${amount(`miete.${k}.netto`,'Euro netto im Monat',`${o(e.n===1?'mS1':'mS2')} vom gemeinsamen Netto`)}
+    <div class="lbl">Name</div>${nameField(`miete.${k}.name`,'z. B. Anna')}
+    ${S.gehalt.length?`<div class="lbl">Aus einem Gehalts-Szenario übernehmen</div><div class="chips">${S.gehalt.map((g,i)=>`<button class="chip" type="button" data-act="mieteFromGehalt" data-i="${i}" data-k="${k}">${esc(g.name)}: ${esc(fmt(num(g.netto),'eur'))}</button>`).join('')}</div>`:''}`;
+  },
+  mieteNotiz(){ return `<div class="ph"><div><h1>Zeitpunkt</h1><div class="sub">Ab wann soll die Rechnung gelten?</div></div></div><div class="lbl">Notiz</div>${nameField('miete.notiz','z. B. Ab April 2027')}`; },
+  verm(e){
+    const g=S.vermoegen.groups[e.gi], it=g&&g.items[e.ii]; if(!it) return '';
+    const p=`vermoegen.groups.${e.gi}.items.${e.ii}`;
+    return `<div class="ph"><div><h1>${esc(it.name||'Position')}</h1><div class="sub">${esc(g.name)}</div></div></div>
+    ${amount(p+'.wert','Euro aktueller Wert',`${o(`v${e.gi}i${e.ii}p`)} vom Vermögen, ${o(`v${e.gi}i${e.ii}g`)} in ${esc(g.name)}`)}
+    <div class="lbl">Bezeichnung</div>${nameField(p+'.name')}
+    <div class="form">${row('Ziel innerhalb der Gruppe',fld(p+'.ziel','pcto',{ph:'optional'}),'Leer lassen, wenn du keins hast')}</div>
+    ${it.ziel!==''&&it.ziel!=null?`<p class="note-txt">Abweichung vom Ziel: ${o(`v${e.gi}i${e.ii}d`)}</p>`:''}
+    <div class="lbl">Gruppe</div>
+    <div class="chips">${S.vermoegen.groups.map((b,i)=>`<button class="chip" type="button" data-act="moveVerm" data-v="${i}" aria-pressed="${i===e.gi}">${esc(b.name)}</button>`).join('')}</div>
+    <div style="margin-top:14px">${delBtn('Position löschen','v')}</div>`;
+  },
+  vgroup(e){
+    const g=S.vermoegen.groups[e.gi]; if(!g) return '';
+    return `<div class="ph"><div><h1>${esc(g.name)}</h1><div class="sub">Gruppe im Vermögen</div></div></div>
+    <div class="lbl">Name der Gruppe</div>${nameField(`vermoegen.groups.${e.gi}.name`)}
+    <div class="form">
+      ${row('Ziel-Anteil (Theorie)',fld(`vermoegen.groups.${e.gi}.ziel`,'pcto',{ph:'optional'}),'Anteil am Gesamtvermögen')}
+      ${row('Aktuell',`<span class="val">${o(`v${e.gi}p`)}</span>`)}
+      ${g.ziel!==''&&g.ziel!=null?row('Soll-Wert',`<span class="val">${o(`v${e.gi}soll`)}</span>`)+row('Abweichung',`<span class="val">${o(`v${e.gi}abw`)}</span>`):''}
+    </div>`;
+  },
+  rendite(e){
+    const r=S.rendite.rows[e.ri]; if(!r) return '';
+    const p=`rendite.rows.${e.ri}`;
+    const opts = '<option value="">Nicht verknüpft</option>' + S.vermoegen.groups.map(g=>`<optgroup label="${esc(g.name)}">${g.items.map(i=>`<option value="${i.id}" ${i.id===r.ref?'selected':''}>${esc(i.name)}</option>`).join('')}</optgroup>`).join('');
+    return `<div class="ph"><div><h1>${esc(r.name||'Anlage')}</h1><div class="sub">Rendite und Kosten</div></div></div>
+    <div class="lbl">Bezeichnung</div>${nameField(p+'.name')}
+    <div class="form">
+      ${row('Rendite im Jahr',fld(p+'.rendite','pct'))}
+      ${row('Laufende Kosten im Jahr',fld(p+'.kosten','pct'))}
+      ${row('Gehört zu',`<span class="fld w2"><select id="ref-${e.ri}" data-p="${p}.ref" data-t="sel">${opts}</select></span>`,'Position aus deinem Vermögen')}
+      ${row('Anteil am Vermögen',`<span class="val">${o(`r${e.ri}a`)}</span>`)}
+    </div>
+    <div style="margin-top:14px">${delBtn('Anlage löschen','r')}</div>`;
+  },
+  inflation(){ return `<div class="ph"><div><h1>Inflation</h1><div class="sub">Für die reale Rendite</div></div></div><div class="form">${row('Inflation im Jahr',fld('rendite.inflation','pct'))}${row('Reale Rendite',`<span class="val">${o('rReal')}</span>`)}</div>`; },
+  gehalt(e){
+    const g=S.gehalt[e.i]; if(!g) return '';
+    const p=`gehalt.${e.i}`;
+    return `<div class="ph"><div><h1>${esc(g.name||'Szenario')}</h1><div class="sub">Gehalts-Szenario</div></div></div>
+    ${amount(p+'.netto','Euro netto im Monat',`${o(`g${e.i}nh`)} netto pro Stunde`)}
+    <div class="lbl">Bezeichnung</div>${nameField(p+'.name')}
+    <div class="form">
+      ${row('Brutto im Monat',fld(p+'.brutto','num',{w:'w2'}))}
+      ${row('Stunden pro Woche',fld(p+'.stunden','num',{unit:'h'}))}
+      ${row('Brutto pro Stunde',`<span class="val">${o(`g${e.i}bh`)}</span>`)}
+    </div>
+    ${S.gehalt.length>1?`<div style="margin-top:14px">${delBtn('Szenario löschen','g')}</div>`:''}`;
+  },
+};
+
+/* ================= Interaktion ================= */
+function onInput(e){
+  const el=e.target; const p=el.dataset.p; if(!p) return;
+  const t=el.dataset.t; let v;
+  if (t==='num'||t==='int') v=parseNum(el.value);
+  else if (t==='pct') v=parseNum(el.value)/100;
+  else if (t==='pcto') v= el.value.trim()==='' ? '' : parseNum(el.value)/100;
+  else if (t==='numo') v= el.value.trim()==='' ? '' : parseNum(el.value);
+  else if (t==='seln') v=Number(el.value);
+  else if (t==='range') v=Number(el.value);
+  else if (t==='split') { v=Math.round(Number(el.value)*100)/100; S.sparen.tg=Math.round((1-v)*100)/100; }
+  else v=el.value;
+  setP(S,p,v);
+  // andere Felder mit demselben Wert nachziehen (Regler <-> Zahl)
+  document.querySelectorAll(`#view [data-p="${p}"]`).forEach(x=>{ if(x===el) return; const xt=x.dataset.t; x.value = (xt==='range'||xt==='split') ? v : valFor(xt,v); });
+  if ((t==='sel'||t==='seln'||t==='pcto') && e.type==='change') render(); else refresh();
+  scheduleSave();
+}
+function onClick(e){
+  const tab=e.target.closest('[data-tab]');
+  if (tab){ if (UI.tab===tab.dataset.tab && !UI.sub && !UI.edit){ scrollTo({top:0,behavior:'smooth'}); return; } go(tab.dataset.tab); return; }
+  const ed=e.target.closest('[data-edit]');
+  if (ed){ const d=JSON.parse(ed.dataset.edit); d.backLabel = UI.sub?SUBS[UI.sub]:TABNAME[UI.tab]; openEdit(d); return; }
+  const g=e.target.closest('[data-go]');
+  if (g){ const t=g.dataset.go; if (SUBS[t]) go('mehr',t); else go(t); return; }
+  const sub=e.target.closest('[data-sub]');
+  if (sub){ go('mehr',sub.dataset.sub); return; }
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  ACT[b.dataset.act] && ACT[b.dataset.act](b);
+}
+const ACT = {
+  closeEdit(){ closeEdit(); },
+  backSub(){ UI.dir='pop'; UI.sub=null; render(); scrollTo(0,UI.scroll['mehr/']||0); },
+  dismissDemo(){ S.beispiel=false; render(); scheduleSave(); },
+  addBudget(b){ const gi=+b.dataset.gi; S.budget[gi].items.push({id:uid(),name:'',betrag:0,freq:'Monatlich'}); scheduleSave(); openEdit({k:'budget',gi,ii:S.budget[gi].items.length-1,backLabel:'Budget',isNew:true}); focusAmount(); },
+  addVerm(b){ const gi=+b.dataset.gi; S.vermoegen.groups[gi].items.push({id:uid(),name:'',wert:0,ziel:''}); scheduleSave(); openEdit({k:'verm',gi,ii:S.vermoegen.groups[gi].items.length-1,backLabel:'Vermögen',isNew:true}); focusAmount(); },
+  addRendite(){ S.rendite.rows.push({id:uid(),name:'',rendite:0,kosten:0,ref:''}); scheduleSave(); openEdit({k:'rendite',ri:S.rendite.rows.length-1,backLabel:'Rendite',isNew:true}); },
+  addGehalt(){ S.gehalt.push({id:uid(),name:'Neues Szenario',stunden:40,brutto:0,netto:0}); scheduleSave(); openEdit({k:'gehalt',i:S.gehalt.length-1,backLabel:'Gehalt',isNew:true}); focusAmount(); },
+  setFreq(b){ const e=UI.edit; S.budget[e.gi].items[e.ii].freq=b.dataset.v; scheduleSave(); render(); },
+  moveGroup(b){ const e=UI.edit, to=+b.dataset.v; if (to===e.gi) return; const it=S.budget[e.gi].items.splice(e.ii,1)[0]; S.budget[to].items.push(it); e.gi=to; e.ii=S.budget[to].items.length-1; scheduleSave(); render(); },
+  moveVerm(b){ const e=UI.edit, to=+b.dataset.v; if (to===e.gi) return; const it=S.vermoegen.groups[e.gi].items.splice(e.ii,1)[0]; S.vermoegen.groups[to].items.push(it); e.gi=to; e.ii=S.vermoegen.groups[to].items.length-1; scheduleSave(); render(); },
+  arm(b){ const k=b.dataset.key; UI.confirm=k; render(); setTimeout(()=>{ if(UI.confirm===k && S){ UI.confirm=null; render(); } },4000); },
+  doDelete(){
+    const e=UI.edit; if(!e) return;
+    if (e.k==='budget') S.budget[e.gi].items.splice(e.ii,1);
+    else if (e.k==='verm'){ const rm=S.vermoegen.groups[e.gi].items.splice(e.ii,1)[0]; if(rm) S.rendite.rows.forEach(r=>{ if(r.ref===rm.id) r.ref=''; }); }
+    else if (e.k==='rendite') S.rendite.rows.splice(e.ri,1);
+    else if (e.k==='gehalt'){ S.gehalt.splice(e.i,1); }
+    scheduleSave(); closeEdit();
+  },
+  useNetto(b){ const g=S.gehalt[Number(b.dataset.i)]; S.netto.betrag=num(g.netto); S.netto.label=g.name?`Netto (${g.name})`:'Nettoeinkommen'; scheduleSave(); if (UI.edit) render(); else { b.textContent='Übernommen'; b.disabled=true; refresh(); } },
+  mieteFromGehalt(b){ S.miete[b.dataset.k].netto=num(S.gehalt[+b.dataset.i].netto); scheduleSave(); render(); },
+  zReal(b){ UI.zReal=b.dataset.v==='1'; render(); },
+  exportPdf(){ doExport('pdf'); },
+  exportCsv(){ doExport('csv'); },
+  clearNotice(){ UI.notice=''; render(); },
+  goHome(){ UI.edit=null; UI.sub=null; UI.tab='uebersicht'; render(); },
+  pinStart(b){ UI.pin={action:b.dataset.v, step: b.dataset.v==='set'?'neu':'cur', entry:'', first:'', err:'', bad:false, msg:''}; render(); },
+  pinCancel(){ UI.pin={action:null,step:null,entry:'',first:'',err:'',bad:false,msg:''}; render(); },
+  async pk(b){
+    const P=UI.pin; if(!P||!P.action) return;
+    P.bad=false; P.err='';
+    if (b.dataset.v==='del'){ P.entry=P.entry.slice(0,-1); render(); return; }
+    if (P.entry.length>=4) return;
+    P.entry+=b.dataset.v; render();
+    if (P.entry.length<4) return;
+    const code=P.entry; P.entry='';
+    if (P.step==='cur'){
+      const ok = (await hashPin(code,S.settings.pin.salt))===S.settings.pin.hash;
+      if (!ok){ P.err='Falscher Code.'; P.bad=true; render(); return; }
+      if (P.action==='remove'){ delete S.settings.pin; scheduleSave(); UI.pin={action:null,msg:'Code-Sperre ist aus.'}; render(); return; }
+      P.step='neu'; render(); return;
+    }
+    if (P.step==='neu'){ P.first=code; P.step='confirm'; render(); return; }
+    if (P.step==='confirm'){
+      if (code!==P.first){ P.step='neu'; P.first=''; P.err='Die Codes stimmen nicht überein. Noch einmal.'; P.bad=true; render(); return; }
+      const salt=b64(crypto.getRandomValues(new Uint8Array(16)));
+      S.settings.pin={salt, hash: await hashPin(code,salt)}; UI.pinOk=true; scheduleSave();
+      UI.pin={action:null,msg: P.action==='set'?'Code-Sperre ist an. Ab dem nächsten Öffnen fragt die App nach deinem Code.':'Neuer Code gespeichert.'}; render();
+    }
+  },
+  zRendite(b){ S.zins.rendite=Number(b.dataset.v); scheduleSave(); render(); },
+  backup(){ makeBackup(); },
+  backupFile(){ saveBackupFile(); },
+  copyBackup(){ copyBackup(); },
+  import(){ doImport(); },
+  pick(b){ toNative({t:'pick',target:b.dataset.target}); },
+  wipe(){ wipe(); },
+};
+function focusAmount(){ const el=document.querySelector('.ed-amount input'); if(el){ el.focus(); el.select(); } }
+
+/* ================= Export (PDF / CSV) ================= */
+function reportData(){
+  compute();
+  const c=(v,f)=>({v, f, t: f ? fmt(v,f) : String(v ?? '')});
+  const N=R.N, out=[];
+  out.push({title:'Übersicht', kv:[
+    ['Nettoeinkommen im Monat',c(N,'eur')],['Ausgaben im Monat',c(R.ges,'eur')],['Bleibt übrig',c(N-R.ges,'eur')],
+    ['Sparbetrag im Monat',c(R.sp.sum,'eur')],['Sparquote',c(N?R.sp.sum/N:0,'pct')],['Gesamtvermögen',c(R.vTot,'eur')],['Gewichtete Rendite im Jahr',c(R.rGew,'pct')]]});
+  const br=[];
+  S.budget.forEach((g,gi)=>{
+    g.items.forEach(it=>{ const m=num(it.betrag)*(FREQ[it.freq]??0); br.push({cells:[c(g.name),c(it.name||''),c(num(it.betrag),'eur'),c(it.freq),c(m,'eur'),c(N?m/N:0,'pct')]}); });
+    br.push({sum:true,cells:[c(g.name),c('Summe'),c(''),c(''),c(R.groups[gi],'eur'),c(N?R.groups[gi]/N:0,'pct')]});
+  });
+  br.push({sum:true,cells:[c(''),c('Ausgaben gesamt'),c(''),c(''),c(R.ges,'eur'),c(N?R.ges/N:0,'pct')]});
+  out.push({title:'Budget', cols:[['Bereich',72],['Bezeichnung',138],['Betrag',70,'r'],['Häufigkeit',78],['pro Monat',70,'r'],['vom Netto',71,'r']], rows:br});
+  const sp=R.sp, srow=(n,v)=>({cells:[c(n),c(N?v/N:0,'pct'),c(v,'eur'),c(v*12,'eur')]});
+  out.push({title:'Sparplan', cols:[['Position',200],['vom Netto',90,'r'],['pro Monat',105,'r'],['pro Jahr',104,'r']], rows:[
+    srow('Altersvorsorge',sp.vAV),srow('Bausparer',sp.vBS),srow('Vermögens-ETF',sp.vE),srow('Tagesgeld',sp.vT),{sum:true,cells:[c('Summe'),c(N?sp.sum/N:0,'pct'),c(sp.sum,'eur'),c(sp.sum*12,'eur')]}]});
+  const vr=[];
+  S.vermoegen.groups.forEach((g,gi)=>{
+    g.items.forEach(it=>{ const w=num(it.wert); vr.push({cells:[c(g.name),c(it.name||''),c(w,'eur'),c(R.vTot?w/R.vTot:0,'pct'),c(R.vGroups[gi]?w/R.vGroups[gi]:0,'pct')]}); });
+    vr.push({sum:true,cells:[c(g.name),c('Summe'+(g.ziel!==''&&g.ziel!=null?`, Ziel ${fmt(num(g.ziel),'pct0')}`:'')),c(R.vGroups[gi],'eur'),c(R.vTot?R.vGroups[gi]/R.vTot:0,'pct'),c('')]});
+  });
+  vr.push({sum:true,cells:[c(''),c('Gesamtvermögen'),c(R.vTot,'eur'),c(R.vTot?1:0,'pct'),c('')]});
+  out.push({title:'Vermögen', cols:[['Gruppe',80],['Position',170],['Wert',95,'r'],['vom Gesamt',77,'r'],['in Gruppe',77,'r']], rows:vr});
+  const nameOf=id=>{ for (const g of S.vermoegen.groups) for (const i of g.items) if (i.id===id) return i.name; return ''; };
+  const rr=S.rendite.rows.map(r=>({cells:[c(r.name||''),c(nameOf(r.ref)),c(num(r.rendite),'pct'),c(num(r.kosten),'pct'),c(R.share[r.ref]??0,'pct')]}));
+  rr.push({sum:true,cells:[c('Gewichtet'),c(''),c(R.rGew,'pct'),c(F.rKosten.n,'pct'),c(R.rAnteile,'pct')]});
+  rr.push({sum:true,cells:[c('Real (minus Inflation)'),c(''),c(F.rReal.n,'pct'),c(''),c('')]});
+  out.push({title:'Rendite', cols:[['Anlage',160],['Vermögensposition',130],['Rendite',70,'r'],['Kosten',70,'r'],['Anteil',69,'r']], rows:rr});
+  return out;
+}
+const today = () => new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+const fileDate = () => new Date().toISOString().slice(0,10);
+
+function buildCsv(){
+  const q = s => { s=String(s ?? ''); return /[;"\r\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+  const val = cell => {
+    if (typeof cell.v !== 'number' || !cell.f) return q(cell.t);
+    if (!isFinite(cell.v)) return '';
+    if (cell.f==='pct'||cell.f==='pct0') return (Math.round(cell.v*10000)/100).toFixed(2).replace('.',',')+'%';
+    if (cell.f==='n') return String(cell.v).replace('.',',');
+    return (Math.round(cell.v*100)/100).toFixed(2).replace('.',',');
+  };
+  const L=[q('Finanzplanung'), q('Stand')+';'+q(fmtDate(S.stand)), q('Erstellt am')+';'+q(today()), ''];
+  for (const sec of reportData()){
+    L.push(q(sec.title));
+    if (sec.kv){ L.push('Bezeichnung;Wert'); sec.kv.forEach(([k,v])=>L.push(q(k)+';'+val(v))); }
+    else { L.push(sec.cols.map(c=>q(c[0])).join(';')); sec.rows.forEach(r=>L.push(r.cells.map(val).join(';'))); }
+    L.push('');
+  }
+  return '\uFEFF'+L.join('\r\n');
+}
+
+function buildPdf(){
+  const WIN={'€':0x80,'‚':0x82,'„':0x84,'…':0x85,'‘':0x91,'’':0x92,'“':0x93,'”':0x94,'•':0x95,'–':0x96,'—':0x97,'\u00a0':0x20,'\u202f':0x20,'\u2009':0x20,'−':0x2D};
+  const hex=s=>{ let h=''; for (const ch of String(s)){ let c=WIN[ch]; if(c==null){ c=ch.charCodeAt(0); if(c>255) c=0x3F; } h+=c.toString(16).padStart(2,'0'); } return h; };
+  const CW={' ':278,'.':278,',':278,'-':333,'+':584,'%':889,'€':556,':':278,'/':278,'(':333,')':333,'\u00a0':278,'\u202f':278};
+  const width=(s,size,bold)=>{ let w=0; for (const ch of String(s)){ if(/[0-9]/.test(ch)) w+=556; else if(CW[ch]!=null) w+=CW[ch]; else if(/[ilIjtfr]/.test(ch)) w+=bold?333:278; else if(/[mwMW]/.test(ch)) w+=833; else if(/[A-ZÄÖÜ]/.test(ch)) w+=bold?722:667; else w+=bold?611:556; } return w*size/1000; };
+  const fit=(s,max,size,bold)=>{ s=String(s); if(width(s,size,bold)<=max) return s; while(s.length>1 && width(s+'…',size,bold)>max) s=s.slice(0,-1); return s+'…'; };
+  const wrapT=(s,max,size,bold)=>{ const words=String(s).split(/\s+/); const lines=[]; let cur=''; for(const w of words){ const t=cur?cur+' '+w:w; if(width(t,size,bold)<=max) cur=t; else { if(cur) lines.push(cur); cur=w; } } if(cur) lines.push(cur); return lines.length?lines:['']; };
+  const rgb=h=>{ const n=parseInt(h.slice(1),16); return [(n>>16)&255,(n>>8)&255,n&255].map(v=>(v/255).toFixed(3)).join(' '); };
+  const PW=595.28, PH=841.89, M=48, CWID=PW-2*M;
+  const INK='#14202B', MUTED='#5D6B78', LINE='#E1E6EB', GREEN='#22845F', SOFT='#EEF4F1';
+  const pages=[]; let ops=[], y=0;
+  const T=(x,yy,s,size=9.5,bold=false,color=INK,align='l')=>{ const xx=align==='r'?x-width(s,size,bold):x; ops.push(`BT /${bold?'F2':'F1'} ${size} Tf ${rgb(color)} rg ${xx.toFixed(2)} ${yy.toFixed(2)} Td <${hex(s)}> Tj ET`); };
+  const RECT=(x,yy,w,h,color)=>ops.push(`${rgb(color)} rg ${x.toFixed(2)} ${yy.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`);
+  const LN=(x1,yy,x2,color=LINE,w=0.6)=>ops.push(`${rgb(color)} RG ${w} w ${x1.toFixed(2)} ${yy.toFixed(2)} m ${x2.toFixed(2)} ${yy.toFixed(2)} l S`);
+  const newPage=()=>{ if(ops.length) pages.push(ops); ops=[]; y=PH-M; };
+  const need=h=>{ if (y-h < M+20) newPage(); };
+  newPage();
+  // Kopf
+  RECT(M,y-30,30,30,GREEN);
+  ops.push(`1 1 1 RG 1.6 w 1 J ${[[7,10,7,14],[12,10,12,20],[17,10,17,16],[22,10,22,23]].map(([a,b,c2,d])=>`${(M+a+0.5).toFixed(2)} ${(y-30+b).toFixed(2)} m ${(M+c2+0.5).toFixed(2)} ${(y-30+d).toFixed(2)} l`).join(' ')} S`);
+  T(M+42,y-14,'Finanzplanung',20,true);
+  T(M+42,y-28,`Stand ${fmtDate(S.stand)||'-'}, erstellt am ${today()}`,9.5,false,MUTED);
+  y-=48;
+  const vals=[['Netto im Monat',fmt(R.N,'eur')],['Sparquote',fmt(R.N?R.sp.sum/R.N:0,'pct')],['Gesamtvermögen',fmt(R.vTot,'eur')]];
+  const bw=(CWID-16)/3; vals.forEach(([k,v],i)=>{ const x=M+i*(bw+8); RECT(x,y-46,bw,46,SOFT); T(x+10,y-16,k,8.5,false,MUTED); T(x+10,y-35,v,15,true,i===1&&R.sp.sum<0?'#C3414E':INK); });
+  y-=64;
+  for (const sec of reportData()){
+    if (sec.title==='Übersicht') { sec.kv=sec.kv.slice(1,2).concat(sec.kv.slice(2,4)).concat(sec.kv.slice(6)); }
+    need(60); y-=10; RECT(M,y-2,3,14,GREEN); T(M+10,y,sec.title,13,true); y-=12;
+    if (sec.kv){
+      sec.kv.forEach(([k,v])=>{ need(18); y-=15; T(M,y,fit(k,CWID*0.6,9.5,false),9.5,false,INK); T(M+CWID,y,v.t,9.5,true,typeof v.v==='number'&&v.v<-1e-9?'#C3414E':INK,'r'); y-=5; LN(M,y,M+CWID); });
+    } else {
+      const xs=[]; let x=M; sec.cols.forEach((cdef,i)=>{ xs.push(x + (i>0 && cdef[2]!=='r' && sec.cols[i-1][2]==='r' ? 12 : 0)); x+=cdef[1]; });
+      const head=()=>{ need(20); y-=13; sec.cols.forEach((cdef,i)=>T(cdef[2]==='r'?xs[i]+cdef[1]-4:xs[i],y,cdef[0],8,true,MUTED,cdef[2]==='r'?'r':'l')); y-=5; LN(M,y,M+CWID,'#C9D1D8',0.8); };
+      head();
+      sec.rows.forEach(r=>{
+        const lines = r.cells.map((cell,i)=> sec.wrap && sec.cols[i][2]!=='r' ? wrapT(cell.t, sec.cols[i][1]-8, 8.5, false) : [fit(cell.t, sec.cols[i][1]-8, 9, !!r.sum)]);
+        const nl=Math.max(...lines.map(l=>l.length)), size=sec.wrap?8.5:9, lh=size+3, h=nl*lh+5.5;
+        if (y-h < M+20){ newPage(); head(); }
+        if (r.sum) RECT(M,y-h,CWID,h,SOFT);
+        lines.forEach((ls,i)=>{ const cdef=sec.cols[i], cell=r.cells[i]; const neg=typeof cell.v==='number'&&cell.v<-1e-9;
+          const col = cdef[0]==='Status' ? (cell.t==='Erfüllt'?GREEN:cell.t==='Knapp'?'#A86A00':cell.t==='Nicht erfüllt'?'#C3414E':MUTED) : neg?'#C3414E':INK;
+          ls.forEach((t,li)=>T(cdef[2]==='r'?xs[i]+cdef[1]-4:xs[i],y-10-li*lh,t,size,!!r.sum||cdef[0]==='Status',col,cdef[2]==='r'?'r':'l')); });
+        y-=h; LN(M,y,M+CWID);
+      });
+    }
+    y-=8;
+  }
+  need(24); y-=14; T(M,y,'Diese Datei ist nicht verschlüsselt. Bewahre sie sicher auf.',8,false,MUTED);
+  pages.push(ops);
+  const n=pages.length;
+  pages.forEach((p,i)=>{ const o=ops=p; LN(M,M-6,M+CWID); T(M,M-18,'Finanzplanung, vertraulich',7.5,false,MUTED); T(M+CWID,M-18,`Seite ${i+1} von ${n}`,7.5,false,MUTED,'r'); });
+  const objs=[];
+  objs[1]='<< /Type /Catalog /Pages 2 0 R >>';
+  objs[3]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  objs[4]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+  objs[5]=`<< /Title (Finanzplanung) /Producer (Finanzplanung App) /CreationDate (D:${new Date().toISOString().replace(/[-:T]/g,'').slice(0,14)}) >>`;
+  const kids=[];
+  pages.forEach((p,i)=>{ const pid=6+i*2, cid=7+i*2, st=p.join('\n'); objs[cid]=`<< /Length ${st.length} >>\nstream\n${st}\nendstream`; objs[pid]=`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${cid} 0 R >>`; kids.push(`${pid} 0 R`); });
+  objs[2]=`<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${n} >>`;
+  let out='%PDF-1.4\n'; const offs=[];
+  for (let i=1;i<objs.length;i++){ offs[i]=out.length; out+=`${i} 0 obj\n${objs[i]}\nendobj\n`; }
+  const xref=out.length;
+  out+=`xref\n0 ${objs.length}\n0000000000 65535 f \n`+offs.slice(1).map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<< /Size ${objs.length} /Root 1 0 R /Info 5 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return out;
+}
+
+function doExport(kind){
+  try{
+    const name=`Finanzplanung-${fileDate()}.${kind}`;
+    if (kind==='pdf'){
+      const pdf=buildPdf();
+      if (NATIVE) toNative({t:'exportData',b64:btoa(pdf),name});
+      else shareOrDownload(new Blob([Uint8Array.from(pdf,c=>c.charCodeAt(0))],{type:'application/pdf'}),name);
+    } else {
+      const csv=buildCsv();
+      if (NATIVE) toNative({t:'export',text:csv,name});
+      else shareOrDownload(new Blob([csv],{type:'text/csv;charset=utf-8'}),name);
+    }
+    UI.expMsg = `${kind.toUpperCase()} erstellt. Wähle im Teilen-Menü „In Dateien sichern“ oder eine andere App.`;
+  } catch(e){ UI.expMsg = 'Export fehlgeschlagen: '+(e&&e.message||e); }
+  render();
+}
+function downloadBlob(blob,name){ try{ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1500); }catch(e){} }
+
+/* ================= Speichern ================= */
+function setStatus(busy,text){ const s=$('#saveStatus'); if(!s) return; s.classList.toggle('busy',busy); s.lastChild.textContent=text; }
+function scheduleSave(){ setStatus(true,'Speichert …'); clearTimeout(saveTimer); saveTimer=setTimeout(saveNow,NATIVE?150:500); }
+/* ================= Web-Version: Speichern, Schlüssel, Entsperren ================= */
+/* Aufbau:
+   - Die Daten werden mit einem zufälligen Datenschlüssel (DEK, AES-256-GCM) verschlüsselt.
+   - Der DEK selbst liegt nur "eingepackt" im Tresor, mit bis zu drei Schlössern:
+       rec  = Wiederherstellungscode (immer vorhanden, zum Aufschreiben)
+       prf  = Face ID / Fingerabdruck über einen Passkey (WebAuthn-PRF)
+       dev  = Geräteschlüssel (nicht exportierbar, im Browser-Speicher), nur zusammen mit gate
+       gate = Passkey ohne PRF: Face ID muss bestätigt werden, dann öffnet der Geräteschlüssel
+   - Fällt ein Schloss aus, öffnet ein anderes. Der Code allein reicht immer. */
+const pinOn = () => false;
+const WEBVER = '14';
+let DEKRAW = null, LOCKS = null, CUR_VAULT = null, PENDING = null, hiddenAt = 0;
+const RC_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const rnd = n => crypto.getRandomValues(new Uint8Array(n));
+const fmtCode = c => c.match(/.{1,4}/g).join('-');
+const normCode = s => String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+function newRecoveryCode(){ const b=rnd(24); let s=''; for (const x of b) s+=RC_ALPHA[x&31]; return s; }
+
+/* ---- Hilfen ---- */
+async function aesKey(raw, usages=['encrypt','decrypt']){ return crypto.subtle.importKey('raw', raw, {name:'AES-GCM'}, false, usages); }
+async function wrapWith(kek, raw){ const iv=rnd(12); const w=await crypto.subtle.encrypt({name:'AES-GCM',iv}, kek, raw); return {iv:b64(iv), w:b64(w)}; }
+async function unwrapWith(kek, lock){ return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(lock.iv)}, kek, ub64(lock.w))); }
+async function kekFromCode(code, saltB64, iter){
+  const base = await crypto.subtle.importKey('raw', te.encode(normCode(code)), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt:ub64(saltB64), iterations:iter, hash:'SHA-256'}, base, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+}
+async function kekFromPrf(prfOut){
+  const base = await crypto.subtle.importKey('raw', prfOut, 'HKDF', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'HKDF', hash:'SHA-256', salt:new Uint8Array(32), info:te.encode('finanzplanung-v3')}, base, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+}
+
+/* ---- Geräteschlüssel (nicht exportierbar, IndexedDB) ---- */
+function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open('finanzplanung',1); r.onupgradeneeded=()=>r.result.createObjectStore('keys'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbGet(k){ const db=await idb(); return new Promise((res,rej)=>{ const t=db.transaction('keys').objectStore('keys').get(k); t.onsuccess=()=>res(t.result); t.onerror=()=>rej(t.error); }); }
+async function idbSet(k,v){ const db=await idb(); return new Promise((res,rej)=>{ const t=db.transaction('keys','readwrite'); t.objectStore('keys').put(v,k); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); }); }
+async function idbDel(k){ try { const db=await idb(); await new Promise(res=>{ const t=db.transaction('keys','readwrite'); t.objectStore('keys').delete(k); t.oncomplete=res; t.onerror=res; }); } catch(e){} }
+async function deviceKeyGet(create){
+  try { const k=await idbGet('dev'); if (k) return k; } catch(e){}
+  if (!create) return null;
+  const k = await crypto.subtle.generateKey({name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+  try { await idbSet('dev',k); } catch(e){ return null; }
+  return k;
+}
+
+/* ---- Passkey (Face ID / Fingerabdruck) ---- */
+const passkeyAvailable = async () => { try { return !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); } catch(e){ return false; } };
+async function passkeyCreate(prfSalt){
+  const cred = await navigator.credentials.create({publicKey:{
+    rp:{name:'Finanzplanung', id:location.hostname},
+    user:{id:rnd(16), name:'Finanzplanung', displayName:'Finanzplanung'},
+    challenge:rnd(32),
+    pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+    authenticatorSelection:{residentKey:'required', requireResidentKey:true, userVerification:'required', authenticatorAttachment:'platform'},
+    extensions:{prf:{eval:{first:prfSalt}}},
+    timeout:120000
+  }});
+  const ext = cred.getClientExtensionResults ? cred.getClientExtensionResults() : {};
+  return {id:b64(cred.rawId), prfEnabled: !!(ext.prf && ext.prf.enabled), prfFirst: ext.prf && ext.prf.results && ext.prf.results.first ? new Uint8Array(ext.prf.results.first) : null};
+}
+async function passkeyGet(credB64, prfSalt){
+  const opts = {challenge:rnd(32), userVerification:'required', timeout:120000, rpId:location.hostname};
+  if (credB64) opts.allowCredentials=[{type:'public-key', id:ub64(credB64)}];
+  if (prfSalt) opts.extensions={prf:{eval:{first:prfSalt}}};
+  const a = await navigator.credentials.get({publicKey:opts});
+  const ext = a.getClientExtensionResults ? a.getClientExtensionResults() : {};
+  return {id:b64(a.rawId), prfFirst: ext.prf && ext.prf.results && ext.prf.results.first ? new Uint8Array(ext.prf.results.first) : null};
+}
+
+/* ---- Tresor lesen/schreiben ---- */
+async function sealV3(data){
+  const iv=rnd(12);
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv}, KEY, te.encode(JSON.stringify(data)));
+  return {v:3, app:'finanzplanung', iv:b64(iv), ct:b64(ct), locks:LOCKS, updated:Date.now()};
+}
+async function openV3(raw, v){ const k=await aesKey(raw); const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(v.iv)}, k, ub64(v.ct)); return {k, data:JSON.parse(td.decode(pt))}; }
+function writeV3(v){ CUR_VAULT = JSON.stringify(v); localStorage.setItem(STORE_KEY, CUR_VAULT); }
+function saveNow(){
+  clearTimeout(saveTimer); saveTimer=null;
+  if (!KEY||!S) return saving;
+  const data=JSON.parse(JSON.stringify(S));
+  saving = saving.then(async()=>{
+    try { writeV3(await sealV3(data)); setStatus(false,'Verschlüsselt gespeichert'); }
+    catch(err){ setStatus(true,'Speichern fehlgeschlagen. Bitte Sicherung speichern'); }
+  });
+  return saving;
+}
+
+/* ---- Teilen / Speichern in Dateien ---- */
+function shareOrDownload(blob,name){
+  try {
+    const file = new File([blob], name, {type: blob.type || 'application/octet-stream'});
+    if (navigator.canShare && navigator.canShare({files:[file]})) return navigator.share({files:[file], title:name}).then(()=>true, e=> e && e.name==='AbortError' ? false : (downloadBlob(blob,name), true));
+  } catch(e){}
+  downloadBlob(blob,name); return Promise.resolve(true);
+}
+
+/* ---- Bildschirme vor dem Öffnen ---- */
+const LK = { set(msg, html, err=''){ $('#app').hidden=true; $('#lock').hidden=false; $('#lockMsg').innerHTML=msg; $('#lkBody').innerHTML=html||''; $('#lkErr').textContent=err; } };
+const lkBtn = (id,label,cls='primary') => `<button id="${id}" class="btn ${cls}" type="button">${label}</button>`;
+const lkLink = (id,label,style='') => `<button id="${id}" class="link" type="button" style="${style}">${label}</button>`;
+function on(id,fn){ const el=document.getElementById(id); if (el) el.addEventListener('click',fn); }
+
+function showWelcome(note){
+  LK.set(note ? esc(note) : 'Deine Finanzen, verschlüsselt auf diesem Gerät. Du entsperrst mit Face ID, und ein Wiederherstellungscode sichert dich ab.',
+    lkBtn('wlStart','Einrichten')+lkLink('wlRestore','Sicherung wiederherstellen')+'<input id="wlFile" type="file" accept=".json,application/json,text/plain" hidden>');
+  on('wlStart', setupStart);
+  on('wlRestore', ()=>$('#wlFile').click());
+  $('#wlFile').addEventListener('change', e=>readBackupFile(e.target.files[0]));
+}
+
+/* Einrichtung: 1) Code zeigen, 2) Code bestätigen, 3) Face ID */
+let SETUP=null;
+async function setupStart(){
+  DEKRAW = rnd(32);
+  const code=newRecoveryCode(), salt=b64(rnd(16)), iter=150000;
+  LOCKS = {rec:{salt, iter, ...(await wrapWith(await kekFromCode(code,salt,iter), DEKRAW))}};
+  SETUP = {code};
+  LK.set('<b>Dein Wiederherstellungscode.</b> Schreib ihn auf oder speichere ihn in einer gesperrten Notiz. Ohne Face ID kommst du nur damit an deine Daten.',
+    `<div class="rcode" id="rcode">${fmtCode(code)}</div>
+     ${lkBtn('rcCopy','Code kopieren','')}
+     <label class="sr" for="rcCheck">Letzte 4 Zeichen</label>
+     <input id="rcCheck" type="text" class="masked0" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" maxlength="4" placeholder="Zur Kontrolle: die letzten 4 Zeichen">
+     ${lkBtn('rcNext','Weiter')}`);
+  on('rcCopy', ()=>{ navigator.clipboard && navigator.clipboard.writeText(fmtCode(code)).then(()=>{ $('#rcCopy').textContent='Kopiert'; },()=>{}); });
+  on('rcNext', ()=>{
+    if (normCode($('#rcCheck').value)!==code.slice(-4)){ $('#lkErr').textContent='Die letzten 4 Zeichen stimmen nicht. Schau noch einmal auf den Code.'; return; }
+    setupFaceId();
+  });
+}
+async function setupFaceId(){
+  const avail = await passkeyAvailable();
+  if (!avail){ return setupFinish('none'); }
+  LK.set('<b>Face ID einrichten.</b> Damit öffnest du die App künftig mit einem Blick. Dein iPhone legt dafür einen Passkey an, der im iCloud-Schlüsselbund gesichert wird.',
+    lkBtn('fiGo','Face ID einrichten')+lkLink('fiSkip','Ohne Face ID weiter'));
+  on('fiGo', faceIdCreate);
+  on('fiSkip', ()=>setupFinish('none'));
+}
+async function faceIdCreate(){
+  $('#lkErr').textContent='';
+  const prfSalt = rnd(32);
+  let c;
+  try { c = await passkeyCreate(prfSalt); }
+  catch(e){ $('#lkErr').textContent='Face ID wurde nicht eingerichtet ('+(e&&e.name||'Fehler')+'). Du kannst es nochmal versuchen oder ohne Face ID weitermachen.'; return; }
+  if (c.prfFirst) return addPrfLock(c.id, prfSalt, c.prfFirst);
+  // Viele Geräte liefern den Schlüssel erst bei der ersten Anmeldung: einmal bestätigen
+  LK.set('<b>Fast fertig.</b> Bestätige Face ID noch einmal, damit dein Schlüssel daraus erzeugt werden kann.',
+    lkBtn('fiConfirm','Face ID bestätigen')+lkLink('fiSkip2','Überspringen'));
+  on('fiConfirm', async ()=>{
+    $('#lkErr').textContent='';
+    try {
+      const g = await passkeyGet(c.id, prfSalt);
+      if (g.prfFirst) return addPrfLock(c.id, prfSalt, g.prfFirst);
+      return addGateLock(c.id);        // Passkey ohne PRF: Face ID als Sperre + Geräteschlüssel
+    } catch(e){ $('#lkErr').textContent='Das hat nicht geklappt ('+(e&&e.name||'Fehler')+'). Versuch es nochmal.'; }
+  });
+  on('fiSkip2', ()=>addGateLock(c.id));
+}
+async function addPrfLock(credId, prfSalt, prfOut){
+  LOCKS.prf = {cred:credId, salt:b64(prfSalt), ...(await wrapWith(await kekFromPrf(prfOut), DEKRAW))};
+  delete LOCKS.gate; delete LOCKS.dev;
+  return SETUP ? setupFinish('prf') : afterLockChange('Face ID ist eingerichtet.');
+}
+async function addGateLock(credId){
+  const dk = await deviceKeyGet(true);
+  if (!dk){ return SETUP ? setupFinish('none') : afterLockChange('Face ID ließ sich auf diesem Gerät nicht einrichten.'); }
+  LOCKS.gate = {cred:credId}; LOCKS.dev = await wrapWith(dk, DEKRAW);
+  return SETUP ? setupFinish('gate') : afterLockChange('Face ID ist als Sperre eingerichtet.');
+}
+async function setupFinish(kind){
+  if (kind==='none'){ const dk=await deviceKeyGet(true); if (dk){ LOCKS.dev = await wrapWith(dk, DEKRAW); } }
+  KEY = await aesKey(DEKRAW);
+  S = normalize(defaults()); S.beispiel = true; S.settings.lastBackup = 0;
+  SETUP = null;
+  await saveNow(); openApp();
+  UI.notice = kind==='prf' ? 'Fertig. Ab jetzt öffnest du die App mit Face ID.'
+    : kind==='gate' ? 'Fertig. Face ID schützt die App.'
+    : 'Fertig. Die App öffnet sich auf diesem Gerät direkt.';
+  render();
+}
+async function afterLockChange(msg){ UI.fid=null; await saveNow(); UI.notice=msg; render(); }
+
+/* Entsperren */
+function showUnlock(v, why){
+  const hasFace = !!(v.locks && (v.locks.prf || v.locks.gate));
+  LK.set(why || (hasFace ? 'Entsperre mit Face ID.' : 'Gib deinen Wiederherstellungscode ein.'),
+    (hasFace ? lkBtn('ulFace','Mit Face ID entsperren') : '') +
+    `<div id="ulCodeBox" ${hasFace?'hidden':''} class="lkcol"><label class="sr" for="ulCode">Wiederherstellungscode</label><input id="ulCode" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX">${lkBtn('ulCodeGo','Mit Code öffnen')}</div>` +
+    (hasFace ? lkLink('ulCodeShow','Mit Wiederherstellungscode öffnen') : '') +
+    (PENDING ? lkLink('ulCancel','Abbrechen') : ''));
+  on('ulFace', ()=>unlockFace(v));
+  on('ulCodeShow', ()=>{ $('#ulCodeBox').hidden=false; $('#ulCodeShow').hidden=true; $('#ulCode').focus(); });
+  on('ulCodeGo', ()=>unlockCode(v));
+  on('ulCancel', ()=>{ PENDING=null; boot(); });
+  const ci=$('#ulCode'); if (ci) ci.addEventListener('keydown',e=>{ if(e.key==='Enter') unlockCode(v); });
+}
+async function finishUnlock(v, raw, data, note){
+  DEKRAW = raw; LOCKS = v.locks || {}; KEY = await aesKey(DEKRAW);
+  try { S = normalize(data); } catch(e){ S = data; }
+  // Geräteschlüssel neu einpacken, falls er hier fehlt (z. B. neues Gerät)
+  if (LOCKS.gate || (!LOCKS.prf && !LOCKS.gate)){ const dk=await deviceKeyGet(true); if (dk) LOCKS.dev = await wrapWith(dk, DEKRAW); }
+  const wasPending = !!PENDING; PENDING=null;
+  await saveNow(); openApp();
+  if (note || wasPending){ UI.notice = note || 'Sicherung wiederhergestellt.'; render(); }
+}
+async function unlockFace(v){
+  $('#lkErr').textContent='';
+  try {
+    if (v.locks.prf){
+      const g = await passkeyGet(v.locks.prf.cred, ub64(v.locks.prf.salt));
+      if (!g.prfFirst) throw new Error('nopfr');
+      const raw = await unwrapWith(await kekFromPrf(g.prfFirst), v.locks.prf);
+      const {data} = await openV3(raw, v); return finishUnlock(v, raw, data);
+    }
+    if (v.locks.gate){
+      await passkeyGet(v.locks.gate.cred, null);
+      const dk = await deviceKeyGet(false);
+      if (!dk || !v.locks.dev) throw new Error('nodev');
+      const raw = await unwrapWith(dk, v.locks.dev);
+      const {data} = await openV3(raw, v); return finishUnlock(v, raw, data);
+    }
+  } catch(e){
+    const n = e && (e.name||e.message);
+    $('#lkErr').textContent = n==='NotAllowedError' ? 'Face ID wurde abgebrochen. Tipp nochmal auf den Knopf.'
+      : 'Face ID hat hier nicht geklappt. Öffne die App mit deinem Wiederherstellungscode.';
+    $('#ulCodeBox').hidden=false; const s=$('#ulCodeShow'); if (s) s.hidden=true;
+  }
+}
+let codeFails=0;
+async function unlockCode(v){
+  $('#lkErr').textContent='';
+  const code=normCode($('#ulCode').value);
+  if (code.length!==24){ $('#lkErr').textContent='Der Code hat 24 Zeichen (ohne Bindestriche).'; return; }
+  if (codeFails>2) await sleep(Math.min(20000, 1000*2**(codeFails-3)));
+  try {
+    const r=v.locks.rec; const raw=await unwrapWith(await kekFromCode(code, r.salt, r.iter||150000), r);
+    const {data}=await openV3(raw, v); codeFails=0; return finishUnlock(v, raw, data);
+  } catch(e){ codeFails++; $('#lkErr').textContent='Der Code passt nicht zu diesen Daten.'; }
+}
+async function unlockDevice(v){
+  try {
+    const dk=await deviceKeyGet(false); if (!dk || !v.locks.dev) throw 0;
+    const raw=await unwrapWith(dk, v.locks.dev); const {data}=await openV3(raw, v); return finishUnlock(v, raw, data);
+  } catch(e){ showUnlock(v, 'Gib deinen Wiederherstellungscode ein, um die Daten auf diesem Gerät zu öffnen.'); }
+}
+
+/* Sicherung als Datei */
+async function readBackupFile(f){
+  if (!f) return;
+  $('#lkErr').textContent='';
+  try {
+    const txt=(await f.text()).trim(); const v=JSON.parse(txt);
+    if (!v || v.v!==3 || !v.locks || !v.locks.rec) throw 0;
+    PENDING=v; showUnlock(v, 'Sicherung gefunden. Öffne sie mit Face ID oder dem Wiederherstellungscode, der zu dieser Sicherung gehört.');
+  } catch(e){ $('#lkErr').textContent='Diese Datei ist keine Sicherung dieser App. Eine Excel-Datendatei (.json) importierst du nach dem Einrichten unter Mehr, Sicherheit & Daten.'; }
+}
+function saveSicherung(){
+  if (!CUR_VAULT){ UI.notice='Es gibt noch nichts zu sichern.'; render(); return; }
+  const name=`Finanzplanung-Sicherung-${fileDate()}.json`;
+  shareOrDownload(new Blob([CUR_VAULT],{type:'application/json'}), name).then(ok=>{
+    if (!ok) return;
+    S.settings.lastBackup=Date.now(); scheduleSave();
+    UI.notice='Sicherung erstellt. Bewahre die Datei in der Dateien-App auf, am besten in iCloud Drive.'; render();
+  });
+}
+const makeBackup = saveSicherung, saveBackupFile = saveSicherung;
+function copyBackup(){}
+function backupBanner(){
+  const lb=num(S.settings.lastBackup||0), days=lb?Math.floor((Date.now()-lb)/86400000):null;
+  if (lb && days<7) return '';
+  return alert('warn', lb ? `Deine letzte Sicherung ist ${days} Tage alt. Sichere deine Daten in der Dateien-App.` : 'Du hast noch keine Sicherung in Dateien. Ohne Sicherung sind die Daten weg, wenn das Gerät verloren geht.',
+    '<button class="btn small act" type="button" data-act="backupFile">Jetzt sichern</button>');
+}
+
+/* Import (Excel-Datendatei oder alte FPB1-Sicherung) */
+$('#view').addEventListener('change', async e=>{
+  if (e.target.id==='impFile'){ const f=e.target.files[0]; if(f) $('#impText').value=(await f.text()).trim(); }
+  if (e.target.id==='restoreIn'){ const f=e.target.files[0]; if(f) inAppRestore(f); }
+});
+async function inAppRestore(f){
+  try {
+    const v=JSON.parse((await f.text()).trim());
+    if (!v || v.v!==3) throw new Error('Das ist keine Sicherung dieser App.');
+    // Gleicher Datenschlüssel? Dann direkt öffnen.
+    try { const {data}=await openV3(DEKRAW, v); S=normalize(data); LOCKS = Object.assign({}, LOCKS); await saveNow(); UI.notice='Sicherung wiederhergestellt.'; render(); return; } catch(x){}
+    throw new Error('Diese Sicherung gehört zu einer anderen Einrichtung. Lösche unter „Alle Daten löschen“ die aktuellen Daten und stell sie beim Einrichten über „Sicherung wiederherstellen“ mit ihrem Code her.');
+  } catch(e){ UI.importErr=e.message||'Wiederherstellen fehlgeschlagen.'; render(); }
+}
+async function doImport(){
+  UI.importErr=UI.importMsg='';
+  const txt=($('#impText').value||'').trim(), pw=$('#impPw')?$('#impPw').value:'';
+  try{
+    if (!txt) throw new Error('Wähle zuerst eine Datei oder füge den Text ein.');
+    let data;
+    if (txt.startsWith('FPB1.')){
+      const v=JSON.parse(td.decode(ub64(txt.slice(5))));
+      const key=await deriveKey(pw,ub64(v.salt),v.iter||ITER);
+      try{ data=await unseal(key,v); } catch(x){ throw new Error('Das Passwort passt nicht zu dieser alten Sicherung.'); }
+    } else {
+      try{ data=JSON.parse(txt); } catch(x){ throw new Error('Der Text ist keine gültige Datendatei.'); }
+      if (data && data.v===3) throw new Error('Das ist eine Sicherung. Nutze dafür „Sicherung öffnen“ weiter oben.');
+      if (!data || !data.budget) throw new Error('Die Datei enthält keine Finanzplanungs-Daten.');
+    }
+    const keep = S.settings.lastBackup;
+    S=normalize(data); S.beispiel=false; S.settings.lastBackup = keep||0; await saveNow();
+    UI.importMsg = 'Importiert und verschlüsselt gespeichert. Lösche die unverschlüsselte Importdatei jetzt von deinem Gerät.';
+  } catch(x){ UI.importErr=x.message||'Import fehlgeschlagen.'; }
+  render();
+}
+async function wipe(){
+  if (($('#wipeIn').value||'').trim().toUpperCase()!=='LÖSCHEN'){ $('#wipeIn').focus(); return; }
+  clearTimeout(saveTimer); saveTimer=null; await saving;
+  try { localStorage.removeItem(STORE_KEY); } catch(e){}
+  await idbDel('dev');
+  KEY=null; S=null; DEKRAW=null; LOCKS=null; CUR_VAULT=null; UI.edit=null; UI.tab='uebersicht'; UI.sub=null;
+  showWelcome('Alle Daten wurden von diesem Gerät gelöscht.');
+}
+
+/* Einstellungen: Face ID nachträglich, neuer Code */
+Object.assign(ACT, {
+  setupFaceId(){ faceIdInApp(); },
+  newRecovery(){ newRecoveryInApp(); },
+  recDone(){ UI.newCode=null; render(); },
+  restoreOpen(){ const i=$('#restoreIn'); if (i) i.click(); },
+});
+async function faceIdInApp(){
+  UI.fidErr='';
+  const prfSalt=rnd(32);
+  try {
+    const c = await passkeyCreate(prfSalt);
+    if (c.prfFirst) return addPrfLock(c.id, prfSalt, c.prfFirst);
+    UI.fid = {id:c.id, salt:prfSalt}; render();
+  } catch(e){ UI.fidErr='Face ID wurde nicht eingerichtet ('+(e&&e.name||'Fehler')+').'; render(); }
+}
+ACT.fidConfirm = async () => {
+  const f=UI.fid; if(!f) return;
+  try { const g=await passkeyGet(f.id, f.salt); UI.fid=null; if (g.prfFirst) return addPrfLock(f.id, f.salt, g.prfFirst); return addGateLock(f.id); }
+  catch(e){ UI.fidErr='Das hat nicht geklappt ('+(e&&e.name||'Fehler')+').'; render(); }
+};
+async function newRecoveryInApp(){
+  const code=newRecoveryCode(), salt=b64(rnd(16)), iter=150000;
+  LOCKS.rec = {salt, iter, ...(await wrapWith(await kekFromCode(code,salt,iter), DEKRAW))};
+  await saveNow(); UI.newCode=code; render();
+}
+
+/* Öffnen der App */
+function openApp(){
+  $('#lock').hidden=true; $('#app').hidden=false;
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch(e){}
+  UI.anim=true; render();
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* Sperren, wenn die App länger im Hintergrund war (nur mit Face ID) */
+document.addEventListener('visibilitychange',()=>{
+  if (document.hidden){ hiddenAt=Date.now(); if (saveTimer) saveNow(); return; }
+  if (S && LOCKS && (LOCKS.prf||LOCKS.gate) && hiddenAt && Date.now()-hiddenAt>60000){
+    const v = CUR_VAULT ? JSON.parse(CUR_VAULT) : null;
+    KEY=null; S=null; DEKRAW=null; UI.edit=null;
+    if (v) showUnlock(v,'Gesperrt. Entsperre mit Face ID.');
+  }
+});
+window.addEventListener('pagehide',()=>{ if (saveTimer) saveNow(); });
+
+/* ================= Start ================= */
+$('#view').addEventListener('input',onInput);
+$('#view').addEventListener('change',e=>{ if (e.target.dataset.p) onInput(e); });
+document.addEventListener('click',e=>{ if ($('#app').hidden) return; onClick(e); });
+$('#verInfo').textContent='Version '+WEBVER;
+
+async function boot(){
+  if (!window.crypto || !crypto.subtle){ LK.set('Dieser Browser bietet keine sichere Verschlüsselung an. Öffne die App in Safari oder Chrome über ihre https-Adresse.'); return; }
+  try { localStorage.setItem('fp.t','1'); localStorage.removeItem('fp.t'); } catch(e){ LK.set('Speichern ist in diesem Modus nicht möglich (z. B. privates Surfen). Öffne die App in einem normalen Fenster.'); return; }
+  let v=null; try { const s=localStorage.getItem(STORE_KEY); v=s?JSON.parse(s):null; } catch(e){}
+  if (!v) return showWelcome();
+  if (v.v!==3) return showWelcome('Hier liegen Daten in einem alten Format. Richte die App neu ein und importiere deine Daten danach.');
+  CUR_VAULT = JSON.stringify(v);
+  if (v.locks && (v.locks.prf || v.locks.gate)) return showUnlock(v);
+  return unlockDevice(v);
+}
+boot();
+if ('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+})();
+</script>
+</body>
+</html>
