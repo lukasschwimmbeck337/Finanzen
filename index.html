@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
@@ -15,7 +15,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
-<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px)} body{margin:0}</style>
+<style>:root{color-scheme:light} body{margin:0}</style>
 <title>Finanzplanung</title>
 <style>
 /* Konzept: Farben der Euro-Scheine kodieren die Bereiche (20 € blau = Fixkosten, 50 € orange = Freizeit,
@@ -293,6 +293,21 @@ textarea.code{font:12.5px/1.4 ui-monospace,Menlo,monospace;width:100%;min-height
 .masked{-webkit-text-security:disc}
 .stack input[type=password],.stack input[type=text]{font:inherit;font-size:16px;width:100%;border:0;border-radius:12px;background:var(--surface2);color:var(--ink);padding:13px 14px}
 .btnrow{display:flex;gap:8px;flex-wrap:wrap}
+</style>
+<style>
+/* Web-App-Gerüst: nur der Inhalt scrollt, Kopf- und Tab-Leiste bleiben fest (iOS verschiebt sonst feste Elemente) */
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+html,body,button,a,input,select,textarea,label{touch-action:manipulation}
+body::before{display:none}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden}
+#app[hidden],.lock[hidden]{display:none!important}
+#app .topbar{position:relative;top:auto;flex:none;padding-top:env(safe-area-inset-top,0px)}
+#view{flex:1 1 auto;width:100%;max-width:none;margin:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding-block:0 calc(120px + env(safe-area-inset-bottom,0px))}
+#view>.page{max-width:640px;margin:0 auto}
+#app .tabbar{position:absolute}
+.lock{position:fixed;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;display:flex;flex-direction:column;padding-top:calc(32px + env(safe-area-inset-top,0px));padding-bottom:calc(32px + env(safe-area-inset-bottom,0px))}
+.lock-inner{margin:auto}
+textarea.code{font-size:16px}
 </style>
 </head>
 <body>
@@ -830,9 +845,9 @@ function refreshInner(){
   document.querySelectorAll('#view input[type=range]').forEach(el=>{ const mn=+el.min, mx=+el.max; el.style.setProperty('--p',((+el.value-mn)/(mx-mn)*100).toFixed(2)+'%'); });
 }
 const curKey = () => UI.tab+'/'+(UI.sub||'');
-function go(tab,sub=null){ UI.scroll[curKey()]=scrollY; UI.tab=tab; UI.sub=sub; UI.edit=null; UI.confirm=null; UI.dir=sub?'push':''; render(); scrollTo(0,0); }
-function openEdit(e){ if (e.k==='pin') UI.pin=null; UI.scroll[curKey()]=scrollY; UI.edit=e; UI.confirm=null; UI.dir='push'; render(); scrollTo(0,0); }
-function closeEdit(){ UI.edit=null; UI.confirm=null; UI.dir='pop'; render(); scrollTo(0,UI.scroll[curKey()]||0); }
+function go(tab,sub=null){ UI.scroll[curKey()]=$('#view').scrollTop; UI.tab=tab; UI.sub=sub; UI.edit=null; UI.confirm=null; UI.dir=sub?'push':''; render(); $('#view').scrollTop=0; }
+function openEdit(e){ if (e.k==='pin') UI.pin=null; UI.scroll[curKey()]=$('#view').scrollTop; UI.edit=e; UI.confirm=null; UI.dir='push'; render(); $('#view').scrollTop=0; }
+function closeEdit(){ UI.edit=null; UI.confirm=null; UI.dir='pop'; render(); $('#view').scrollTop=UI.scroll[curKey()]||0; }
 
 /* ================= Ansichten ================= */
 const VIEWS = {
@@ -866,7 +881,7 @@ uebersicht(){
 
   <div class="sh"><h2>Vermögen</h2></div>
   <div class="list">
-    ${li({go:'vermoegen',icon:icBox('',SAVE,'pie'),t:'Gesamtvermögen',v:o('vTot')})}
+    ${li({go:'vermoegen',icon:icBox('',SAVE,'pie'),t:'Vermögen',v:o('vTot')})}
     ${li({go:'rendite',icon:icBox('','var(--orange)','percent'),t:'Gewichtete Rendite',s:`nach Inflation ${o('rReal')}`,v:o('rGew'),vs:'im Jahr'})}
   </div>`;
 },
@@ -1250,7 +1265,7 @@ function onInput(e){
 }
 function onClick(e){
   const tab=e.target.closest('[data-tab]');
-  if (tab){ if (UI.tab===tab.dataset.tab && !UI.sub && !UI.edit){ scrollTo({top:0,behavior:'smooth'}); return; } go(tab.dataset.tab); return; }
+  if (tab){ if (UI.tab===tab.dataset.tab && !UI.sub && !UI.edit){ $('#view').scrollTo({top:0,behavior:'smooth'}); return; } go(tab.dataset.tab); return; }
   const ed=e.target.closest('[data-edit]');
   if (ed){ const d=JSON.parse(ed.dataset.edit); d.backLabel = UI.sub?SUBS[UI.sub]:TABNAME[UI.tab]; openEdit(d); return; }
   const g=e.target.closest('[data-go]');
@@ -1262,7 +1277,7 @@ function onClick(e){
 }
 const ACT = {
   closeEdit(){ closeEdit(); },
-  backSub(){ UI.dir='pop'; UI.sub=null; render(); scrollTo(0,UI.scroll['mehr/']||0); },
+  backSub(){ UI.dir='pop'; UI.sub=null; render(); $('#view').scrollTop=UI.scroll['mehr/']||0; },
   dismissDemo(){ S.beispiel=false; render(); scheduleSave(); },
   addBudget(b){ const gi=+b.dataset.gi; S.budget[gi].items.push({id:uid(),name:'',betrag:0,freq:'Monatlich'}); scheduleSave(); openEdit({k:'budget',gi,ii:S.budget[gi].items.length-1,backLabel:'Budget',isNew:true}); focusAmount(); },
   addVerm(b){ const gi=+b.dataset.gi; S.vermoegen.groups[gi].items.push({id:uid(),name:'',wert:0,ziel:''}); scheduleSave(); openEdit({k:'verm',gi,ii:S.vermoegen.groups[gi].items.length-1,backLabel:'Vermögen',isNew:true}); focusAmount(); },
@@ -1473,7 +1488,7 @@ function scheduleSave(){ setStatus(true,'Speichert …'); clearTimeout(saveTimer
        gate = Passkey ohne PRF: Face ID muss bestätigt werden, dann öffnet der Geräteschlüssel
    - Fällt ein Schloss aus, öffnet ein anderes. Der Code allein reicht immer. */
 const pinOn = () => false;
-const WEBVER = '14';
+const WEBVER = '15';
 let DEKRAW = null, LOCKS = null, CUR_VAULT = null, PENDING = null, hiddenAt = 0;
 const RC_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const rnd = n => crypto.getRandomValues(new Uint8Array(n));
