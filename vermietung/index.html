@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="robots" content="noindex, nofollow">
 <meta name="mobile-web-app-capable" content="yes">
@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0}</style>
+<style>body{margin:0}</style>
 <title>Vermietung</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Vermietung">
@@ -230,6 +230,18 @@ textarea.in{text-align:left;min-height:80px;resize:vertical;padding:10px;font-si
 #ulCode{font-family:ui-monospace,Menlo,monospace;letter-spacing:.04em;text-transform:uppercase}
 .rcode{font:600 19px/1.5 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-align:center;background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:16px 10px;user-select:all;-webkit-user-select:all;word-break:break-all;color:var(--fg)}
 .lock #lockMsg b{color:var(--fg)}
+/* Web-App-Gerüst wie Finanzplanung v15: nur der Inhalt scrollt, Kopf- und Tab-Leiste bleiben fest */
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+html,body,button,a,input,select,textarea,label{touch-action:manipulation}
+body::before{display:none}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden}
+#app[hidden],.lock[hidden]{display:none!important}
+#app .topbar{position:relative;top:auto;flex:none;padding-top:env(safe-area-inset-top,0px)}
+#view{flex:1 1 auto;width:100%;max-width:none;margin:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding-left:max(16px,env(safe-area-inset-left,0px),calc((100% - 680px)/2));padding-right:max(16px,env(safe-area-inset-right,0px),calc((100% - 680px)/2));padding-block:2px calc(96px + env(safe-area-inset-bottom,0px))}
+#app .tabbar{position:absolute}
+.lock{position:fixed;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;display:flex;flex-direction:column;padding-top:calc(32px + env(safe-area-inset-top,0px));padding-bottom:calc(32px + env(safe-area-inset-bottom,0px))}
+.lock-inner{margin:auto}
+textarea.code{font-size:16px}
 .empty{padding:16px 14px;color:var(--muted);font-size:14px}
 </style>
 
@@ -594,9 +606,9 @@ const TABS = [
 const findObj = id => S.objekte.findIndex(x=>x.id===id);
 function findUnit(id){ for (let oi=0;oi<S.objekte.length;oi++){ const ui=S.objekte[oi].einheiten.findIndex(u=>u.id===id); if(ui>=0) return [oi,ui]; } return [-1,-1]; }
 function curView(){ if (UI.unit) return 'einheit'; if (UI.obj) return 'objekt'; return UI.tab; }
-function push(next){ UI.stack.push({obj:UI.obj,unit:UI.unit}); Object.assign(UI,{obj:null,unit:null,confirm:null,erh:null},next); render(); scrollTo(0,0); }
+function push(next){ UI.stack.push({obj:UI.obj,unit:UI.unit}); Object.assign(UI,{obj:null,unit:null,confirm:null,erh:null},next); render(); $('#view').scrollTop=0; }
 function back(){ const p=UI.stack.pop()||{obj:null,unit:null}; UI.obj=p.obj; UI.unit=p.unit; UI.confirm=null; UI.erh=null;
-  if (UI.unit && findUnit(UI.unit)[0]<0) UI.unit=null; if (UI.obj && findObj(UI.obj)<0) UI.obj=null; render(); scrollTo(0,0); }
+  if (UI.unit && findUnit(UI.unit)[0]<0) UI.unit=null; if (UI.obj && findObj(UI.obj)<0) UI.obj=null; render(); $('#view').scrollTop=0; }
 function backLabel(){
   const p=UI.stack[UI.stack.length-1]; if(!p) return 'Zurück';
   if (p.unit){ const [oi,ui]=findUnit(p.unit); return oi>=0?(S.objekte[oi].einheiten[ui].lage||'Einheit'):'Zurück'; }
@@ -1126,13 +1138,13 @@ function onInput(e){
   else if (t==='seln') v=Number(el.value);
   else v=el.value;
   setP(S,p,v);
-  if (e.type==='change' && (t==='seln'||t==='sel'||p.includes('.historie.')||t==='date'||p==='steuerJahr'||p.startsWith('erh.')||p.endsWith('.lage')||p.endsWith('.name')&&!p.includes('historie'))) { const y=scrollY; render(); scrollTo(0,y); }
+  if (e.type==='change' && (t==='seln'||t==='sel'||p.includes('.historie.')||t==='date'||p==='steuerJahr'||p.startsWith('erh.')||p.endsWith('.lage')||p.endsWith('.name')&&!p.includes('historie'))) { const y=$('#view').scrollTop; render(); $('#view').scrollTop=y; }
   else refresh();
   scheduleSave();
 }
 function onClick(e){
   const tab=e.target.closest('[data-tab]');
-  if (tab){ UI.kMsg=''; UI.tab=tab.dataset.tab; UI.obj=null; UI.unit=null; UI.stack=[]; UI.confirm=null; UI.erh=null; UI.copyMsg=''; render(); scrollTo(0,0); return; }
+  if (tab){ UI.kMsg=''; UI.tab=tab.dataset.tab; UI.obj=null; UI.unit=null; UI.stack=[]; UI.confirm=null; UI.erh=null; UI.copyMsg=''; render(); $('#view').scrollTop=0; return; }
   const go=e.target.closest('[data-obj],[data-unit]');
   if (go && !e.target.closest('input,select,button,a')){ if (go.dataset.unit) push({unit:go.dataset.unit}); else push({obj:go.dataset.obj}); return; }
   const b=e.target.closest('[data-act]'); if(!b) return;
@@ -1141,7 +1153,7 @@ function onClick(e){
   else if (a==='del'){
     const arr=getP(S,b.dataset.p), i=Number(b.dataset.i); arr.splice(i,1);
     UI.confirm=null; scheduleSave();
-    if (b.dataset.after==='back') back(); else { const y=scrollY; render(); scrollTo(0,y); }
+    if (b.dataset.after==='back') back(); else { const y=$('#view').scrollTop; render(); $('#view').scrollTop=y; }
   }
   else if (a==='arm'){ UI.confirm=b.dataset.key; render(); setTimeout(()=>{ if(UI.confirm===b.dataset.key){ UI.confirm=null; if(S) render(); } },4000); }
   else if (a==='dismissDemo'){ S.beispiel=false; render(); scheduleSave(); }
@@ -1558,7 +1570,7 @@ function openApp(){
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch(e){}
   if (UI.unit && findUnit(UI.unit)[0]<0) { UI.unit=null; UI.stack=[]; }
   if (UI.obj && findObj(UI.obj)<0) { UI.obj=null; UI.stack=[]; }
-  render();
+  render(); $('#view').scrollTop=0;
 }
 
 /* Sperren, wenn die App länger im Hintergrund war (nur mit Face ID) */
